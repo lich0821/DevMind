@@ -184,6 +184,7 @@ function buildFileMap(): FileEntry[] {
         { path: '.devmind/memory/decisions/.gitkeep', content: '' },
         { path: '.devmind/memory/patterns/.gitkeep', content: '' },
         { path: '.devmind/memory/graveyard/.gitkeep', content: '' },
+        { path: '.devmind/memory/drafts/.gitkeep', content: '' },
         { path: '.devmind/memory/TEMPLATES/decision-template.md', content: TMPL_DECISION },
         { path: '.devmind/memory/TEMPLATES/pattern-template.md', content: TMPL_PATTERN },
         { path: '.devmind/memory/TEMPLATES/graveyard-template.md', content: TMPL_GRAVEYARD },

@@ -27,6 +27,19 @@ extract_file_path() {
     printf '%s' "$1" | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4
 }
 
+# 拦截 Bash 工具中的危险命令（所有模式下均检测）
+if [ "$TOOL_NAME" = "Bash" ]; then
+    COMMAND=$(printf '%s' "$HOOK_INPUT" | grep -o '"command":"[^"]*"' | head -1 | cut -d'"' -f4)
+    for DANGER in "rm -rf" "DROP TABLE" "DELETE FROM" "git push --force" "git push -f"; do
+        if echo "$COMMAND" | grep -qi "$DANGER"; then
+            echo "BLOCKED: 检测到危险命令：$DANGER" >&2
+            echo "命令：$COMMAND" >&2
+            echo "如需执行，请在终端手动运行并明确确认后果。" >&2
+            exit 1
+        fi
+    done
+fi
+
 # 只拦截写操作工具
 if echo "$TOOL_NAME" | grep -qE '^(Write|Edit|NotebookEdit)$'; then
 
