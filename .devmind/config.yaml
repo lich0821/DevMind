@@ -1,0 +1,32 @@
+project: MyProject
+default_mode: explore
+enforcement_level: hook
+
+memory:
+  load_on_session_start:
+    - index_only
+  auto_draft_on_plan: true
+  pattern_threshold: 3
+  auto_retrieve_on:
+    - plan_mode
+    - decision_conflict
+  retrieval_backend: keyword   # keyword | embed-local | embed-ollama | embed-api
+  aging:
+    decisions:
+      review_after_days: 90
+      auto_archive_after_days: 365
+    patterns:
+      review_after_days: 180
+    graveyard:
+      never_expire: true
+
+flow:
+  pause_on_scope_exceeded: true
+
+collaboration:
+  mode: solo
+  conflict_resolution:
+    strategy: last_write_wins
+  ownership:
+    require_author: true
+    notify_on_change: false

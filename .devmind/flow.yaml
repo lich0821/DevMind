@@ -1,0 +1,48 @@
+checkpoints:
+  - trigger: file_scope_exceeded
+    action: pause
+    message: "即将修改计划外的文件 {file_path}"
+    options:
+      - label: "允许此次修改，并更新计划范围"
+        action: expand_plan_scope
+      - label: "允许此次修改（一次性例外，不更新计划）"
+        action: allow_once
+      - label: "跳过此修改，继续其他步骤"
+        action: skip
+      - label: "暂停整个 Build，重新进入 Plan 模式"
+        action: switch_to_plan
+
+  - trigger: uncertainty_declared
+    action: pause
+    message: "方案存在不确定点，请确认是否继续"
+    options:
+      - label: "已了解风险，继续执行"
+        action: proceed
+      - label: "先验证假设，暂不执行"
+        action: pause_for_validation
+      - label: "返回 Plan 模式重新评估"
+        action: switch_to_plan
+
+  - trigger: decision_conflict
+    action: pause
+    message: "发现与已记录决策冲突，请裁决"
+    options:
+      - label: "遵守已有决策，调整当前方案"
+        action: follow_existing
+      - label: "覆盖已有决策（需更新 decisions/）"
+        action: override_decision
+      - label: "暂停，人工评估后决定"
+        action: manual_review
+
+  - trigger: milestone_reached
+    action: pause
+    message: "已完成阶段目标，继续？"
+    options:
+      - label: "继续下一阶段"
+        action: proceed
+      - label: "暂停，检查产出后决定"
+        action: pause
+
+  - on: ["DROP TABLE", "rm -rf", "DELETE FROM"]
+    action: require_explicit_confirm
+    message: "检测到危险操作，请明确确认"
