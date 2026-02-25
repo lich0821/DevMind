@@ -5,6 +5,7 @@ import { runInit } from './commands/init.js';
 import { runStatus } from './commands/status.js';
 import { runRecall } from './commands/recall.js';
 import { runAudit } from './commands/audit.js';
+import { runMigrate } from './commands/migrate.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json') as { version: string; description: string };
@@ -22,6 +23,14 @@ program
     .action((path?: string) => {
         const targetDir = resolve(path ?? '.');
         runInit(targetDir);
+    });
+
+program
+    .command('migrate [path]')
+    .description('Migrate an existing project to DevMind (supports plain projects and OpenSpec)')
+    .action((path?: string) => {
+        const targetDir = resolve(path ?? '.');
+        runMigrate(targetDir);
     });
 
 program

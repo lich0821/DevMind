@@ -4,7 +4,7 @@ import chalk from 'chalk';
 
 import { PRE_TOOL_USE_SH, POST_TOOL_USE_SH, CLAUDE_MD, SETTINGS_LOCAL_JSON } from '../templates.js';
 import { CMD_EXPLORE, CMD_EDIT, CMD_PLAN, CMD_BUILD } from '../templates-commands.js';
-import { CMD_REMEMBER, CMD_RECALL, CMD_BURY, CMD_AUDIT, CMD_SYNC_MEMORY, CMD_PUBLISH, CMD_RELEASE } from '../templates-commands2.js';
+import { CMD_REMEMBER, CMD_RECALL, CMD_BURY, CMD_AUDIT, CMD_SYNC_MEMORY, CMD_PUBLISH, CMD_RELEASE, CMD_MIGRATE } from '../templates-commands2.js';
 import {
     CURRENT_MODE_TXT, SESSION_YAML, CONFIG_YAML, FLOW_YAML,
     CURRENT_PLAN_MD, PROGRESS_MD,
@@ -208,6 +208,7 @@ function buildFileMap(): FileEntry[] {
         { path: '.claude/commands/dm/sync-memory.md', content: CMD_SYNC_MEMORY },
         { path: '.claude/commands/dm/publish.md', content: CMD_PUBLISH },
         { path: '.claude/commands/dm/release.md', content: CMD_RELEASE },
+        { path: '.claude/commands/dm/migrate.md', content: CMD_MIGRATE },
         // docs
         { path: 'docs/designs/draft/.gitkeep', content: '' },
     ];
