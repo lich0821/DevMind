@@ -1,4 +1,19 @@
+# 点文件/目录默认忽略，以下例外
 .*
 !.gitignore
 !.claude/
 !.devmind/
+
+# 构建产物
+dist/
+node_modules/
+
+# .claude 内部忽略
+.claude/settings.local.json
+
+# .devmind 运行时状态（本地私有，不提交）
+.devmind/audit.log
+.devmind/current-mode.txt
+.devmind/current-plan.md
+.devmind/session.yaml
+.devmind/memory/index.md
