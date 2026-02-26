@@ -81,4 +81,6 @@ echo "build" > .devmind/current-mode.txt
 
 ## 完成后
 
-输出执行摘要，建议使用 `/dm:remember` 沉淀决策。
+1. 清空 `current-plan.md`（写入空文件）
+2. 清空 `session.yaml`（写入空文件）
+3. 输出执行摘要，建议使用 `/dm:remember` 沉淀决策。
