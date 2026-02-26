@@ -20,10 +20,11 @@ DevMind addresses these issues by maintaining a set of local "project state file
 
 ## Core Mechanism
 
-### 4 Work Modes
+### 5 Work Modes
 
 | Mode | Purpose | AI Permissions |
 |------|---------|----------------|
+| `auto` | One-liner input, full pipeline runs automatically | Low-risk: fully automated; high-risk: one confirmation |
 | `explore` | Read-only analysis, understand code | File writes blocked |
 | `plan` | Design solutions, no code changes | Business code writes blocked |
 | `build` | Execute per plan | Only files in plan scope allowed |
@@ -64,6 +65,7 @@ This generates:
 Open Claude  Code and start a new session — it will automatically load the current mode and memory index.
 
 ```
+/dm:auto      # One-liner input → auto explore + plan + build
 /dm:explore    # Enter read-only analysis mode
 /dm:plan       # Design a structured solution
 /dm:build      # Execute per plan (auto-maintains checkpoints)
