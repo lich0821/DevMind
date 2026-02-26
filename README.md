@@ -134,7 +134,10 @@ After `devmind init`, the `.devmind/` directory looks like:
 
 ## Releases
 
-**v0.3.0** (current)
+**v0.3.1** (current)
+- fix: clear `current-plan.md` and `session.yaml` after build completes to avoid stale state
+
+**v0.3.0**
 - `/dm:auto` — full-auto pipeline mode: one-liner input triggers explore → plan → build automatically. Low-risk changes run unattended; high-risk changes pause once for confirmation.
 
 **v0.2.1**
