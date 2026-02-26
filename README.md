@@ -134,13 +134,15 @@ After `devmind init`, the `.devmind/` directory looks like:
 
 ## Releases
 
-**v0.1.0** (current)
+**v0.2.1** (current)
+- fix: inject hooks into user-level `~/.claude/settings.json` so mode enforcement actually works
+
+**v0.2.0**
+- `devmind migrate` command + `/dm:migrate` slash command for onboarding existing projects
+
+**v0.1.0**
 - Phase 1: 4 work modes + Hook enforcement + 9 slash commands + audit log
 - Phase 2 core: `devmind init/status/recall/audit` CLI commands
-
-**Planned**
-- Interactive `devmind init` wizard (solo/team configuration)
-- Phase 3: Semantic similarity search for Graveyard
 
 ## License
 

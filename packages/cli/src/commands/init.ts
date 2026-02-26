@@ -170,7 +170,7 @@ type UserSettings = { hooks?: HooksMap; [key: string]: unknown };
  * Preserves all existing content; only adds hooks if not already registered.
  * Hook commands use absolute paths so they work from any project directory.
  */
-function injectUserHooks(projectDir: string): { status: 'injected' | 'already' | 'error'; message: string } {
+export function injectUserHooks(projectDir: string): { status: 'injected' | 'already' | 'error'; message: string } {
     const userSettingsPath = resolve(homedir(), '.claude', 'settings.json');
     const absProjectDir = resolve(projectDir);
 

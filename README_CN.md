@@ -134,7 +134,13 @@ devmind audit --plan "v0.1"  # 按计划名过滤审计日志
 
 ## 版本说明
 
-**v0.1.0**（当前）
+**v0.2.1**（当前）
+- 修复：将 hooks 注入用户级 `~/.claude/settings.json`，模式约束拦截真正生效
+
+**v0.2.0**
+- 新增 `devmind migrate` 命令 + `/dm:migrate` slash command，支持存量项目接入
+
+**v0.1.0**
 - Phase 1 完整实现：4 种模式 + Hook 拦截 + 9 个 Slash 命令 + 审计日志
 - Phase 2 核心实现：`devmind init/status/recall/audit` CLI 命令
 
