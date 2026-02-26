@@ -134,7 +134,10 @@ After `devmind init`, the `.devmind/` directory looks like:
 
 ## Releases
 
-**v0.2.1** (current)
+**v0.3.0** (current)
+- `/dm:auto` — full-auto pipeline mode: one-liner input triggers explore → plan → build automatically. Low-risk changes run unattended; high-risk changes pause once for confirmation.
+
+**v0.2.1**
 - fix: inject hooks into user-level `~/.claude/settings.json` so mode enforcement actually works
 
 **v0.2.0**
