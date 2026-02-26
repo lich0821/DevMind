@@ -44,6 +44,7 @@
 
 | 命令 | 用途 |
 |------|------|
+| `/dm:auto` | 输入一句话需求，自动完成 explore→plan→build 全流程 |
 | `/dm:explore` | 进入只读分析模式 |
 | `/dm:edit` | 进入小范围编辑模式 |
 | `/dm:plan` | 制定结构化方案（强制检索 Graveyard） |
