@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync, readFileSync, chmodSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, resolve, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import chalk from 'chalk';
 
@@ -294,7 +294,7 @@ export function runInit(targetDir: string): void {
 
     for (const file of files) {
         const fullPath = join(targetDir, file.path);
-        const dir = fullPath.substring(0, fullPath.lastIndexOf('/'));
+        const dir = dirname(fullPath);
 
         // Create parent directories
         if (!existsSync(dir)) {
