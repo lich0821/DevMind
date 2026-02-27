@@ -5,7 +5,7 @@ import chalk from 'chalk';
 
 import { PRE_TOOL_USE_SH, POST_TOOL_USE_SH, CLAUDE_MD, SETTINGS_LOCAL_JSON } from '../templates.js';
 import { CMD_EXPLORE, CMD_EDIT, CMD_PLAN, CMD_BUILD } from '../templates-commands.js';
-import { CMD_REMEMBER, CMD_RECALL, CMD_BURY, CMD_AUDIT, CMD_SYNC_MEMORY, CMD_PUBLISH, CMD_RELEASE, CMD_MIGRATE } from '../templates-commands2.js';
+import { CMD_REMEMBER, CMD_RECALL, CMD_BURY, CMD_AUDIT, CMD_SYNC_MEMORY, CMD_PUBLISH, CMD_RELEASE, CMD_MIGRATE, CMD_AUTO } from '../templates-commands2.js';
 import {
     CURRENT_MODE_TXT, SESSION_YAML, CONFIG_YAML, FLOW_YAML,
     CURRENT_PLAN_MD, PROGRESS_MD,
@@ -271,6 +271,7 @@ function buildFileMap(): FileEntry[] {
         { path: '.claude/commands/dm/edit.md', content: CMD_EDIT },
         { path: '.claude/commands/dm/plan.md', content: CMD_PLAN },
         { path: '.claude/commands/dm/build.md', content: CMD_BUILD },
+        { path: '.claude/commands/dm/auto.md', content: CMD_AUTO },
         { path: '.claude/commands/dm/remember.md', content: CMD_REMEMBER },
         { path: '.claude/commands/dm/recall.md', content: CMD_RECALL },
         { path: '.claude/commands/dm/bury.md', content: CMD_BURY },
