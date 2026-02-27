@@ -167,7 +167,7 @@ function buildChecklist(info: ProjectInfo): string {
         lines.push(`- [ ] 检查历史中是否有被否决的技术方案，写入 \`memory/graveyard/\``);
     }
 
-    lines.push(`- [ ] 运行 \`.devmind/scripts/rebuild-index.sh\` 重建索引`);
+    lines.push(`- [ ] 运行 \`node .devmind/scripts/rebuild-index.js\` 重建索引`);
     lines.push(`- [ ] 输出迁移摘要`);
     lines.push(``);
     lines.push(`## 下一步`);

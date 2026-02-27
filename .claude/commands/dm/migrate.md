@@ -107,7 +107,7 @@ echo "edit" > .devmind/current-mode.txt
 ### 步骤5：重建索引
 
 ```sh
-.devmind/scripts/rebuild-index.sh
+node .devmind/scripts/rebuild-index.js
 ```
 
 ### 步骤6：输出迁移摘要

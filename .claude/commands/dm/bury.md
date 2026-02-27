@@ -50,5 +50,5 @@ AI 使用提示：如果再提议类似方案，先读此文件。
 关键词：[关键词列表]
 
 运行以下命令更新索引：
-  .devmind/scripts/rebuild-index.sh
+  node .devmind/scripts/rebuild-index.js
 ```

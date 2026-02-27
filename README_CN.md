@@ -130,13 +130,18 @@ devmind audit --plan "v0.1"  # 按计划名过滤审计日志
 │   └── index.md            轻量级索引（自动生成）
 ├── modes/                  各模式说明文档
 └── scripts/
-    ├── rebuild-index.sh    重建记忆索引
-    └── check-graveyard.py  方案重复检测
+    ├── rebuild-index.js    重建记忆索引
+    └── check-graveyard.js  方案重复检测
 ```
 
 ## 版本说明
 
-**v0.3.1**（当前）
+**v0.4.0**（当前）
+- 新增：所有脚本从 Shell/Python 迁移到 Node.js，支持 Windows
+- 新增：Hook 文件添加 `dm-` 前缀，避免命名冲突
+- 重构：简化 `devmind init` 中的 Hook 注入逻辑
+
+**v0.3.1**
 - 修复：build 完成后自动清空 `current-plan.md` 和 `session.yaml`，避免旧计划残留造成混淆
 
 **v0.3.0**

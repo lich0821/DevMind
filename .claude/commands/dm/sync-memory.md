@@ -31,7 +31,7 @@ git status | grep "memory/"
 ### 步骤3：重建索引
 
 ```sh
-.devmind/scripts/rebuild-index.sh
+node .devmind/scripts/rebuild-index.js
 ```
 
 ### 步骤4：输出同步摘要
@@ -45,4 +45,4 @@ git status | grep "memory/"
 
 ## 注意
 
-个人使用时，直接运行 `.devmind/scripts/rebuild-index.sh` 即可，无需 git pull。
+个人使用时，直接运行 `node .devmind/scripts/rebuild-index.js` 即可，无需 git pull。

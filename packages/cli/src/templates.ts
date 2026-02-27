@@ -1,121 +1,215 @@
 // templates.ts — All file templates for `devmind init`
 // Split into logical groups to keep the file manageable.
 
-// ─── Hooks ───────────────────────────────────────────────────────────────────
+// ─── Hooks (Node.js for cross-platform compatibility) ─────────────────────────
 
-export const PRE_TOOL_USE_SH = `#!/bin/bash
-# .claude/hooks/pre-tool-use.sh
-# PreToolUse Hook: 模式约束拦截
-# 在 Explore / Plan 模式下阻止写操作
-# Claude  Code 通过 stdin 传入 JSON: {"tool_name":"...","tool_input":{...}}
+export const PRE_TOOL_USE_JS = `#!/usr/bin/env node
+// .claude/hooks/dm-pre-tool-use.js
+// PreToolUse Hook: Mode enforcement for DevMind
+// Blocks write operations in Explore/Plan modes
+// Claude  Code passes JSON via stdin: {"tool_name":"...","tool_input":{...}}
 
-set -e
+const fs = require('fs');
+const path = require('path');
 
-DEVMIND_DIR="$(cd "$(dirname "$0")/../.." && pwd)/.devmind"
+const DEVMIND_DIR = path.join(__dirname, '..', '..', '.devmind');
 
-# 读取 stdin 中的 JSON 数据
-HOOK_INPUT=$(cat)
+// Read all stdin
+let input = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', chunk => { input += chunk; });
+process.stdin.on('end', () => {
+    try {
+        main(input);
+    } catch (err) {
+        console.error(\`Hook error: \${err.message}\`);
+        process.exit(0); // Don't block on hook errors
+    }
+});
 
-# 从 JSON 中提取 tool_name
-TOOL_NAME=$(printf '%s' "$HOOK_INPUT" | grep -o '"tool_name":"[^"]*"' | cut -d'"' -f4)
+function main(hookInput) {
+    let data;
+    try {
+        data = JSON.parse(hookInput);
+    } catch {
+        process.exit(0); // Invalid JSON, let it pass
+    }
 
-# 读取当前模式，文件不存在则默认 explore（最严格）
-CURRENT_MODE=$(cat "$DEVMIND_DIR/current-mode.txt" 2>/dev/null || echo "explore")
+    const toolName = data.tool_name || '';
+    const toolInput = data.tool_input || {};
 
-# 从 JSON 中提取 file_path（纯 bash，无外部依赖）
-extract_file_path() {
-    printf '%s' "$1" | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4
+    // Read current mode (default to 'explore' - most restrictive)
+    let currentMode = 'explore';
+    const modeFile = path.join(DEVMIND_DIR, 'current-mode.txt');
+    try {
+        currentMode = fs.readFileSync(modeFile, 'utf8').trim();
+    } catch {
+        // File doesn't exist, use default
+    }
+
+    // Check dangerous commands in Bash tool (all modes)
+    if (toolName === 'Bash') {
+        const command = toolInput.command || '';
+        const dangerPatterns = [
+            'rm -rf',
+            'DROP TABLE',
+            'DELETE FROM',
+            'git push --force',
+            'git push -f'
+        ];
+        for (const pattern of dangerPatterns) {
+            if (command.toLowerCase().includes(pattern.toLowerCase())) {
+                console.error(\`BLOCKED: Dangerous command detected: \${pattern}\`);
+                console.error(\`Command: \${command}\`);
+                console.error('Please run this command manually in terminal if you understand the consequences.');
+                process.exit(1);
+            }
+        }
+    }
+
+    // Only intercept write operations
+    if (['Write', 'Edit', 'NotebookEdit'].includes(toolName)) {
+        const filePath = toolInput.file_path || '';
+
+        if (currentMode === 'explore') {
+            console.error('BLOCKED: Explore mode prohibits file modifications');
+            console.error('Hint: Use /dm:edit or /dm:build to enter writable mode');
+            process.exit(1);
+        }
+
+        if (currentMode === 'plan') {
+            // Plan mode allows writing to .devmind/ internal files
+            if (filePath.includes('.devmind/') || filePath.includes('.devmind\\\\')) {
+                process.exit(0);
+            }
+            console.error('BLOCKED: Plan mode only outputs plans, no business code modifications');
+            console.error('Hint: Use /dm:build to execute confirmed plans');
+            process.exit(1);
+        }
+
+        if (currentMode === 'build') {
+            // Build mode: check file scope constraints
+            const planFile = path.join(DEVMIND_DIR, 'current-plan.md');
+            if (filePath && fs.existsSync(planFile)) {
+                const planContent = fs.readFileSync(planFile, 'utf8');
+                const excludedPatterns = extractExcludedPatterns(planContent);
+
+                for (const pattern of excludedPatterns) {
+                    if (filePath.includes(pattern)) {
+                        console.error(\`PAUSED: File '\${filePath}' is in the exclusion list\`);
+                        console.error('Options: (1) Allow and update plan scope  (2) Allow one-time exception  (3) Skip this modification  (4) Switch to Plan mode');
+                        process.exit(1);
+                    }
+                }
+            }
+        }
+    }
+
+    process.exit(0);
 }
 
-# 拦截 Bash 工具中的危险命令（所有模式下均检测）
-if [ "$TOOL_NAME" = "Bash" ]; then
-    COMMAND=$(printf '%s' "$HOOK_INPUT" | grep -o '"command":"[^"]*"' | head -1 | cut -d'"' -f4)
-    for DANGER in "rm -rf" "DROP TABLE" "DELETE FROM" "git push --force" "git push -f"; do
-        if echo "$COMMAND" | grep -qi "$DANGER"; then
-            echo "BLOCKED: 检测到危险命令：$DANGER" >&2
-            echo "命令：$COMMAND" >&2
-            echo "如需执行，请在终端手动运行并明确确认后果。" >&2
-            exit 1
-        fi
-    done
-fi
+function extractExcludedPatterns(planContent) {
+    const patterns = [];
+    const lines = planContent.split('\\n');
+    let inExcluded = false;
 
-# 只拦截写操作工具
-if echo "$TOOL_NAME" | grep -qE '^(Write|Edit|NotebookEdit)$'; then
+    for (const line of lines) {
+        if (line.startsWith('### ') && line.includes('排除')) {
+            inExcluded = true;
+            continue;
+        }
+        if (inExcluded) {
+            if (line.startsWith('### ')) {
+                break; // Next section
+            }
+            const trimmed = line.trim();
+            if (trimmed.startsWith('- ')) {
+                patterns.push(trimmed.slice(2).trim());
+            }
+        }
+    }
 
-    if [ "$CURRENT_MODE" = "explore" ]; then
-        echo "BLOCKED: Explore 模式禁止修改文件" >&2
-        echo "提示：使用 /dm:edit 或 /dm:build 进入可写模式" >&2
-        exit 1
-    fi
-
-    if [ "$CURRENT_MODE" = "plan" ]; then
-        FILE_ARG=$(extract_file_path "$HOOK_INPUT")
-        if echo "$FILE_ARG" | grep -q "\\.devmind/"; then
-            exit 0
-        fi
-        echo "BLOCKED: Plan 模式仅输出方案，不修改业务代码" >&2
-        echo "提示：使用 /dm:build 执行已确认的计划" >&2
-        exit 1
-    fi
-
-    if [ "$CURRENT_MODE" = "build" ]; then
-        PLAN_FILE="$DEVMIND_DIR/current-plan.md"
-        FILE_ARG=$(extract_file_path "$HOOK_INPUT")
-
-        if [ -n "$FILE_ARG" ] && [ -f "$PLAN_FILE" ]; then
-            IN_EXCLUDED=$(awk '/^### 明确排除/,/^###/' "$PLAN_FILE" | grep -v "^###" | grep -v "^$" | sed 's/^- //' | while read -r pattern; do
-                if echo "$FILE_ARG" | grep -q "$pattern"; then
-                    echo "yes"
-                    break
-                fi
-            done)
-
-            if [ "$IN_EXCLUDED" = "yes" ]; then
-                echo "PAUSED: 文件 '$FILE_ARG' 在明确排除列表中" >&2
-                echo "请选择：(1) 允许并更新计划范围  (2) 允许一次性例外  (3) 跳过此修改  (4) 切换到 Plan 模式" >&2
-                exit 1
-            fi
-        fi
-    fi
-
-fi
-
-exit 0
+    return patterns;
+}
 `;
 
-export const POST_TOOL_USE_SH = `#!/bin/bash
-# .claude/hooks/post-tool-use.sh
-# PostToolUse Hook: 审计日志自动捕获
-# 每次写操作后自动记录到 audit.log
-# Claude  Code 通过 stdin 传入 JSON: {"tool_name":"...","tool_input":{...},"tool_response":{...}}
+export const POST_TOOL_USE_JS = `#!/usr/bin/env node
+// .claude/hooks/dm-post-tool-use.js
+// PostToolUse Hook: Audit logging for DevMind
+// Records all write operations to audit.log
+// Claude  Code passes JSON via stdin: {"tool_name":"...","tool_input":{...},"tool_response":{...}}
 
-DEVMIND_DIR="$(cd "$(dirname "$0")/../.." && pwd)/.devmind"
+const fs = require('fs');
+const path = require('path');
 
-# 读取 stdin 中的 JSON 数据
-HOOK_INPUT=$(cat)
+const DEVMIND_DIR = path.join(__dirname, '..', '..', '.devmind');
 
-# 从 JSON 中提取 tool_name
-TOOL_NAME=$(printf '%s' "$HOOK_INPUT" | grep -o '"tool_name":"[^"]*"' | cut -d'"' -f4)
+// Read all stdin
+let input = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', chunk => { input += chunk; });
+process.stdin.on('end', () => {
+    try {
+        main(input);
+    } catch (err) {
+        // Silent failure for audit logging - don't interrupt workflow
+        process.exit(0);
+    }
+});
 
-# 从 JSON 中提取 file_path
-extract_file_path() {
-    printf '%s' "$1" | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4
+function main(hookInput) {
+    let data;
+    try {
+        data = JSON.parse(hookInput);
+    } catch {
+        process.exit(0);
+    }
+
+    const toolName = data.tool_name || '';
+    const toolInput = data.tool_input || {};
+
+    // Only log write operations
+    if (!['Write', 'Edit', 'NotebookEdit'].includes(toolName)) {
+        process.exit(0);
+    }
+
+    // Read current mode
+    let currentMode = 'unknown';
+    const modeFile = path.join(DEVMIND_DIR, 'current-mode.txt');
+    try {
+        currentMode = fs.readFileSync(modeFile, 'utf8').trim();
+    } catch {
+        // Use default
+    }
+
+    // Read current plan title
+    let currentPlan = 'none';
+    const planFile = path.join(DEVMIND_DIR, 'current-plan.md');
+    try {
+        const planContent = fs.readFileSync(planFile, 'utf8');
+        const firstLine = planContent.split('\\n')[0] || '';
+        if (firstLine.startsWith('# ')) {
+            currentPlan = firstLine.slice(2).trim();
+        }
+    } catch {
+        // Use default
+    }
+
+    const filePath = toolInput.file_path || 'unknown';
+    const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    const logLine = \`[\${timestamp}] \${currentMode}  \${filePath}  plan:\${currentPlan}\\n\`;
+
+    // Append to audit log
+    const auditFile = path.join(DEVMIND_DIR, 'audit.log');
+    try {
+        fs.appendFileSync(auditFile, logLine, 'utf8');
+    } catch {
+        // Silent failure
+    }
+
+    process.exit(0);
 }
-
-# 只处理写操作工具
-if echo "$TOOL_NAME" | grep -qE '^(Write|Edit|NotebookEdit)$'; then
-
-    CURRENT_MODE=$(cat "$DEVMIND_DIR/current-mode.txt" 2>/dev/null || echo "unknown")
-    CURRENT_PLAN=$(head -1 "$DEVMIND_DIR/current-plan.md" 2>/dev/null | sed 's/^# //')
-    FILE_PATH=$(extract_file_path "$HOOK_INPUT")
-    FILE_PATH="\${FILE_PATH:-unknown}"
-
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $CURRENT_MODE  \${FILE_PATH}  plan:\${CURRENT_PLAN:-none}" \\
-        >> "$DEVMIND_DIR/audit.log"
-fi
-
-exit 0
 `;
 
 // ─── CLAUDE.md ────────────────────────────────────────────────────────────────
@@ -158,14 +252,15 @@ export const CLAUDE_MD = `# DevMind 状态感知
 
 ## 模式约束说明（Hook 强制执行）
 
-- Explore / Plan 模式下，Write / Edit / NotebookEdit 工具调用会被 \`pre-tool-use.sh\` 拦截
+- Explore / Plan 模式下，Write / Edit / NotebookEdit 工具调用会被 \`dm-pre-tool-use.js\` 拦截
 - Build 模式下，修改"明确排除"列表中的文件会触发暂停
-- 所有写操作都由 \`post-tool-use.sh\` 自动记录到 \`audit.log\`
+- 所有写操作都由 \`dm-post-tool-use.js\` 自动记录到 \`audit.log\`
 
 ## 可用命令速览
 
 | 命令 | 用途 |
 |------|------|
+| \`/dm:auto\` | 输入一句话需求，自动完成 explore→plan→build 全流程 |
 | \`/dm:explore\` | 进入只读分析模式 |
 | \`/dm:edit\` | 进入小范围编辑模式 |
 | \`/dm:plan\` | 制定结构化方案（强制检索 Graveyard） |
@@ -186,10 +281,8 @@ export const SETTINGS_LOCAL_JSON = `{
     "allow": [
       "Bash(chmod:*)",
       "Bash(tree:*)",
-      "Bash(python:*)",
-      "Bash(python3:*)",
-      "Bash(.devmind/scripts/rebuild-index.sh:*)",
-      "Bash(bash:*)"
+      "Bash(node:*)",
+      "Bash(node .devmind/scripts/*:*)"
     ],
     "deny": [],
     "ask": []

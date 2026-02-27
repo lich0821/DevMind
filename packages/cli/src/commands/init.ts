@@ -3,7 +3,7 @@ import { join, resolve, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import chalk from 'chalk';
 
-import { PRE_TOOL_USE_SH, POST_TOOL_USE_SH, CLAUDE_MD, SETTINGS_LOCAL_JSON } from '../templates.js';
+import { PRE_TOOL_USE_JS, POST_TOOL_USE_JS, CLAUDE_MD, SETTINGS_LOCAL_JSON } from '../templates.js';
 import { CMD_EXPLORE, CMD_EDIT, CMD_PLAN, CMD_BUILD } from '../templates-commands.js';
 import { CMD_REMEMBER, CMD_RECALL, CMD_BURY, CMD_AUDIT, CMD_SYNC_MEMORY, CMD_PUBLISH, CMD_RELEASE, CMD_MIGRATE, CMD_AUTO } from '../templates-commands2.js';
 import {
@@ -13,132 +13,288 @@ import {
     TMPL_DECISION, TMPL_PATTERN, TMPL_GRAVEYARD,
 } from '../templates-devmind.js';
 
-// ─── Rebuild-index script (kept here to avoid another template file) ──────────
+// ─── Scripts (Node.js for cross-platform compatibility) ──────────────────────
 
-const REBUILD_INDEX_SH = `#!/bin/bash
-# .devmind/scripts/rebuild-index.sh
-set -e
-DEVMIND_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-INDEX_FILE="$DEVMIND_DIR/memory/index.md"
+const REBUILD_INDEX_JS = `#!/usr/bin/env node
+// .devmind/scripts/rebuild-index.js
+// Rebuilds memory/index.md lightweight index
+// Usage: node .devmind/scripts/rebuild-index.js
 
-python3 - "$DEVMIND_DIR" "$INDEX_FILE" << 'PYEOF'
-import sys
-from pathlib import Path
-from datetime import datetime
+const fs = require('fs');
+const path = require('path');
 
-devmind_dir = Path(sys.argv[1])
-index_file = Path(sys.argv[2])
+const DEVMIND_DIR = path.join(__dirname, '..');
+const INDEX_FILE = path.join(DEVMIND_DIR, 'memory', 'index.md');
 
-def count_md(d):
-    return len(list(d.glob("*.md"))) if d.exists() else 0
+function countMd(dir) {
+    if (!fs.existsSync(dir)) return 0;
+    return fs.readdirSync(dir).filter(f => f.endsWith('.md')).length;
+}
 
-def extract_field(content, prefix):
-    for line in content.splitlines():
-        if line.startswith(prefix):
-            return line[len(prefix):].strip()
-    return ""
+function extractField(content, prefix) {
+    for (const line of content.split('\\n')) {
+        if (line.startsWith(prefix)) {
+            return line.slice(prefix.length).trim();
+        }
+    }
+    return '';
+}
 
-def build_section(directory, title_prefix, tag_prefix, summary_prefix, keyword_prefix=None):
-    lines = []
-    md_files = sorted(directory.glob("*.md")) if directory.exists() else []
-    count = len(md_files)
-    lines.append(f"## {title_prefix} 索引（共 {count} 条）")
-    lines.append("")
-    if count == 0:
-        lines.append("（暂无记录）")
-    else:
-        for fpath in md_files:
-            content = fpath.read_text(encoding="utf-8")
-            title = extract_field(content, f"## {title_prefix}：") or fpath.stem
-            if keyword_prefix:
-                tags = extract_field(content, keyword_prefix)
-                tag_str = f"（关键词：{tags}）" if tags else ""
-            else:
-                tags = extract_field(content, tag_prefix)
-                tag_str = f"（{tags}）" if tags else ""
-            lines.append(f"- \`{fpath.stem}\` - {title}{tag_str}")
-            if not keyword_prefix:
-                summary = extract_field(content, "**摘要**：")
-                if summary:
-                    lines.append(f"  > {summary}")
-    return lines
+function buildSection(directory, titlePrefix, tagPrefix, summaryPrefix, keywordPrefix = null) {
+    const lines = [];
+    let mdFiles = [];
 
-dec_dir = devmind_dir / "memory" / "decisions"
-pat_dir = devmind_dir / "memory" / "patterns"
-gyd_dir = devmind_dir / "memory" / "graveyard"
+    if (fs.existsSync(directory)) {
+        mdFiles = fs.readdirSync(directory)
+            .filter(f => f.endsWith('.md'))
+            .sort()
+            .map(f => path.join(directory, f));
+    }
 
-output = []
-output.append("<!-- 此文件由 .devmind/scripts/rebuild-index.sh 自动生成，请勿手动编辑 -->")
-output.append(f"<!-- 上次生成：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -->")
-output.append("")
-output.extend(build_section(dec_dir, "决策", "- 标签：", "**摘要**："))
-output.append("")
-output.extend(build_section(pat_dir, "规律", "- 标签：", "**摘要**："))
-output.append("")
-output.extend(build_section(gyd_dir, "放弃方案", None, None, keyword_prefix="- 关键词："))
-output.append("")
-output.append("---")
-output.append("")
-output.append("使用提示：需要详细内容时，使用 \`/recall <关键词>\` 检索")
+    const count = mdFiles.length;
+    lines.push(\`## \${titlePrefix} 索引（共 \${count} 条）\`);
+    lines.push('');
 
-index_file.write_text("\\n".join(output) + "\\n", encoding="utf-8")
+    if (count === 0) {
+        lines.push('（暂无记录）');
+    } else {
+        for (const fpath of mdFiles) {
+            const content = fs.readFileSync(fpath, 'utf8');
+            const stem = path.basename(fpath, '.md');
 
-dec_count = count_md(dec_dir)
-pat_count = count_md(pat_dir)
-gyd_count = count_md(gyd_dir)
-print(f"Decisions={dec_count}  Patterns={pat_count}  Graveyard={gyd_count}", file=sys.stderr)
-PYEOF
+            // Extract title
+            let title = extractField(content, \`## \${titlePrefix}：\`) || stem;
 
-echo "索引已重建：$INDEX_FILE"
+            // Extract tags or keywords
+            let tagStr = '';
+            if (keywordPrefix) {
+                const tags = extractField(content, keywordPrefix);
+                tagStr = tags ? \`（关键词：\${tags}）\` : '';
+            } else {
+                const tags = extractField(content, tagPrefix);
+                tagStr = tags ? \`（\${tags}）\` : '';
+            }
+
+            lines.push(\`- \\\`\${stem}\\\` - \${title}\${tagStr}\`);
+
+            // Summary (only for decisions and patterns)
+            if (!keywordPrefix) {
+                const summary = extractField(content, '**摘要**：');
+                if (summary) {
+                    lines.push(\`  > \${summary}\`);
+                }
+            }
+        }
+    }
+
+    return lines;
+}
+
+function main() {
+    const decDir = path.join(DEVMIND_DIR, 'memory', 'decisions');
+    const patDir = path.join(DEVMIND_DIR, 'memory', 'patterns');
+    const gydDir = path.join(DEVMIND_DIR, 'memory', 'graveyard');
+
+    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    const output = [];
+    output.push('<!-- 此文件由 .devmind/scripts/rebuild-index.js 自动生成，请勿手动编辑 -->');
+    output.push(\`<!-- 上次生成：\${now} -->\`);
+    output.push('');
+    output.push(...buildSection(decDir, '决策', '- 标签：', '**摘要**：'));
+    output.push('');
+    output.push(...buildSection(patDir, '规律', '- 标签：', '**摘要**：'));
+    output.push('');
+    output.push(...buildSection(gydDir, '放弃方案', null, null, '- 关键词：'));
+    output.push('');
+    output.push('---');
+    output.push('');
+    output.push('使用提示：需要详细内容时，使用 \`/recall <关键词>\` 检索');
+
+    fs.writeFileSync(INDEX_FILE, output.join('\\n') + '\\n', 'utf8');
+
+    const decCount = countMd(decDir);
+    const patCount = countMd(patDir);
+    const gydCount = countMd(gydDir);
+
+    console.error(\`Decisions=\${decCount}  Patterns=\${patCount}  Graveyard=\${gydCount}\`);
+    console.log(\`索引已重建：\${INDEX_FILE}\`);
+}
+
+main();
 `;
 
-const CHECK_GRAVEYARD_PY = `#!/usr/bin/env python3
-"""check-graveyard.py — Graveyard 关键词匹配检测
-用法：python3 .devmind/scripts/check-graveyard.py "redis cache layer"
-"""
-import sys, re
-from pathlib import Path
+const CHECK_GRAVEYARD_JS = `#!/usr/bin/env node
+// .devmind/scripts/check-graveyard.js
+// Graveyard keyword matching detection
+// Detects if current proposal is similar to rejected solutions
+//
+// Usage:
+//   node .devmind/scripts/check-graveyard.js "redis cache layer"
+//   node .devmind/scripts/check-graveyard.js "GraphQL API endpoint"
 
-def load_graveyard(graveyard_dir):
-    entries = []
-    gdir = Path(graveyard_dir)
-    if not gdir.exists():
-        return entries
-    for fpath in sorted(gdir.glob("*.md")):
-        content = fpath.read_text(encoding="utf-8")
-        lines = content.splitlines()
-        title = next((l.replace("## 放弃方案：", "").strip() for l in lines if l.startswith("## 放弃方案：")), fpath.stem)
-        kw_line = next((l for l in lines if l.startswith("- 关键词：")), "")
-        raw = kw_line.replace("- 关键词：", "").strip()
-        keywords = set(kw.strip().lower() for kw in raw.replace("，", ",").split(",") if kw.strip())
-        entries.append({"file": str(fpath), "title": title, "keywords": keywords})
-    return entries
+const fs = require('fs');
+const path = require('path');
 
-def main():
-    if len(sys.argv) < 2:
-        print("用法：python3 check-graveyard.py <提议描述>")
-        sys.exit(1)
-    proposal = " ".join(sys.argv[1:]).lower()
-    script_dir = Path(__file__).parent
-    graveyard_dir = script_dir.parent / "memory" / "graveyard"
-    matches = []
-    for entry in load_graveyard(str(graveyard_dir)):
-        overlap = {kw for kw in entry["keywords"] if kw in proposal}
-        if overlap:
-            matches.append({"title": entry["title"], "overlap": overlap})
-    if not matches:
-        print(f'未发现与 "{proposal}" 相似的已否决方案。')
-        sys.exit(0)
-    print(f'⚠️  发现 {len(matches)} 个与提议相似的已否决方案：')
-    for m in matches:
-        print(f'  {m["title"]}  关键词：{", ".join(sorted(m["overlap"]))}')
-    sys.exit(1)
+function loadGraveyard(graveyardDir) {
+    const entries = [];
 
-if __name__ == "__main__":
-    main()
+    if (!fs.existsSync(graveyardDir)) {
+        return entries;
+    }
+
+    const files = fs.readdirSync(graveyardDir)
+        .filter(f => f.endsWith('.md'))
+        .sort();
+
+    for (const filename of files) {
+        const fpath = path.join(graveyardDir, filename);
+        const content = fs.readFileSync(fpath, 'utf8');
+        const lines = content.split('\\n');
+
+        // Extract title
+        let title = path.basename(filename, '.md');
+        for (const line of lines) {
+            if (line.startsWith('## 放弃方案：')) {
+                title = line.replace('## 放弃方案：', '').trim();
+                break;
+            }
+        }
+
+        // Extract keywords line
+        let rawKeywords = '';
+        for (const line of lines) {
+            if (line.startsWith('- 关键词：')) {
+                rawKeywords = line.replace('- 关键词：', '').trim();
+                break;
+            }
+        }
+
+        // Parse keywords (support both Chinese and English comma)
+        const keywords = new Set(
+            rawKeywords
+                .replace(/，/g, ',')
+                .split(',')
+                .map(kw => kw.trim().toLowerCase())
+                .filter(kw => kw)
+        );
+
+        // Extract rejection reasons
+        const reasonLines = [];
+        let inReason = false;
+        for (const line of lines) {
+            if (line.startsWith('- 放弃原因：')) {
+                inReason = true;
+                continue;
+            }
+            if (inReason) {
+                if (line.startsWith('  ') && line.trim()) {
+                    reasonLines.push(line.trim());
+                } else if (line.startsWith('- ') && !line.startsWith('  ')) {
+                    break;
+                }
+            }
+        }
+
+        entries.push({
+            file: fpath,
+            title,
+            keywords,
+            reasons: reasonLines.slice(0, 2) // Only first 2 reasons
+        });
+    }
+
+    return entries;
+}
+
+function checkGraveyard(proposal, graveyardDir) {
+    const proposalLower = proposal.toLowerCase();
+
+    // Simple tokenization: split by spaces, commas, periods
+    const proposalTerms = new Set(
+        proposalLower
+            .split(/[\\s,，。、]+/)
+            .filter(t => t)
+    );
+
+    const entries = loadGraveyard(graveyardDir);
+    const matches = [];
+
+    for (const entry of entries) {
+        if (entry.keywords.size === 0) continue;
+
+        // Check word overlap
+        const overlap = new Set();
+        for (const term of proposalTerms) {
+            if (entry.keywords.has(term)) {
+                overlap.add(term);
+            }
+        }
+
+        // Also check if keywords are substrings of proposal (for Chinese continuous words)
+        for (const kw of entry.keywords) {
+            if (kw && proposalLower.includes(kw)) {
+                overlap.add(kw);
+            }
+        }
+
+        if (overlap.size > 0) {
+            matches.push({
+                file: entry.file,
+                title: entry.title,
+                overlap: Array.from(overlap),
+                reasons: entry.reasons,
+                matchCount: overlap.size
+            });
+        }
+    }
+
+    // Sort by match count descending
+    return matches.sort((a, b) => b.matchCount - a.matchCount);
+}
+
+function main() {
+    if (process.argv.length < 3) {
+        console.log('用法：node check-graveyard.js <提议描述>');
+        console.log('示例：node check-graveyard.js "redis cache layer"');
+        process.exit(1);
+    }
+
+    const proposal = process.argv.slice(2).join(' ');
+
+    // Auto-detect graveyard directory location
+    const scriptDir = __dirname;
+    const graveyardDir = path.join(scriptDir, '..', 'memory', 'graveyard');
+
+    const matches = checkGraveyard(proposal, graveyardDir);
+
+    if (matches.length === 0) {
+        console.log(\`未发现与 "\${proposal}" 相似的已否决方案。\`);
+        process.exit(0);
+    }
+
+    console.log(\`⚠️  发现 \${matches.length} 个与提议相似的已否决方案：\\n\`);
+
+    for (const m of matches) {
+        console.log(\`  与已否决方案相似：\${m.title}\`);
+        console.log(\`  匹配关键词：\${m.overlap.sort().join(', ')}\`);
+        if (m.reasons.length > 0) {
+            console.log('  否决原因：');
+            for (const r of m.reasons) {
+                console.log(\`    \${r}\`);
+            }
+        }
+        console.log(\`  文件：\${m.file}\`);
+        console.log();
+    }
+
+    process.exit(1); // Non-zero exit code for script detection
+}
+
+main();
 `;
 
-const INDEX_MD = `<!-- 此文件由 .devmind/scripts/rebuild-index.sh 自动生成，请勿手动编辑 -->
+const INDEX_MD = `<!-- 此文件由 .devmind/scripts/rebuild-index.js 自动生成，请勿手动编辑 -->
 
 ## 决策 索引（共 0 条）
 
@@ -168,14 +324,18 @@ type UserSettings = { hooks?: HooksMap; [key: string]: unknown };
  * Inject DevMind hooks into ~/.claude/settings.json (user-level).
  * Claude  Code reads hooks ONLY from user-level settings, not project-level.
  * Preserves all existing content; only adds hooks if not already registered.
- * Hook commands use absolute paths so they work from any project directory.
+ * Hook commands use "node <absolute-path>" for cross-platform compatibility.
+ *
+ * IMPORTANT: Each project gets its own hook entry with a matcher that limits
+ * the hook to only run when working in that project's directory.
  */
 export function injectUserHooks(projectDir: string): { status: 'injected' | 'already' | 'error'; message: string } {
     const userSettingsPath = resolve(homedir(), '.claude', 'settings.json');
     const absProjectDir = resolve(projectDir);
 
-    const preHookCommand = `${absProjectDir}/.claude/hooks/pre-tool-use.sh`;
-    const postHookCommand = `${absProjectDir}/.claude/hooks/post-tool-use.sh`;
+    // Use "node <path>" for cross-platform execution (dm- prefix to avoid conflicts)
+    const preHookCommand = `node "${absProjectDir}/.claude/hooks/dm-pre-tool-use.js"`;
+    const postHookCommand = `node "${absProjectDir}/.claude/hooks/dm-post-tool-use.js"`;
 
     // Read or initialize user settings
     let settings: UserSettings = {};
@@ -189,12 +349,12 @@ export function injectUserHooks(projectDir: string): { status: 'injected' | 'alr
 
     const hooks: HooksMap = settings.hooks ? { ...settings.hooks } : {};
 
-    // Check if already registered (by command path)
+    // Check if already registered (by looking for this project's dm- prefixed hooks)
     const preAlready = (hooks['PreToolUse'] ?? []).some(m =>
-        m.hooks?.some(h => h.command === preHookCommand),
+        m.hooks?.some(h => h.command.includes(absProjectDir) && h.command.includes('dm-pre-tool-use.js')),
     );
     const postAlready = (hooks['PostToolUse'] ?? []).some(m =>
-        m.hooks?.some(h => h.command === postHookCommand),
+        m.hooks?.some(h => h.command.includes(absProjectDir) && h.command.includes('dm-post-tool-use.js')),
     );
 
     if (preAlready && postAlready) {
@@ -223,6 +383,7 @@ export function injectUserHooks(projectDir: string): { status: 'injected' | 'alr
     }
 
     writeFileSync(userSettingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
+
     return { status: 'injected', message: userSettingsPath };
 }
 
@@ -258,14 +419,14 @@ function buildFileMap(): FileEntry[] {
         { path: '.devmind/memory/TEMPLATES/decision-template.md', content: TMPL_DECISION },
         { path: '.devmind/memory/TEMPLATES/pattern-template.md', content: TMPL_PATTERN },
         { path: '.devmind/memory/TEMPLATES/graveyard-template.md', content: TMPL_GRAVEYARD },
-        // scripts
-        { path: '.devmind/scripts/rebuild-index.sh', content: REBUILD_INDEX_SH, executable: true },
-        { path: '.devmind/scripts/check-graveyard.py', content: CHECK_GRAVEYARD_PY, executable: true },
+        // scripts (Node.js for cross-platform)
+        { path: '.devmind/scripts/rebuild-index.js', content: REBUILD_INDEX_JS },
+        { path: '.devmind/scripts/check-graveyard.js', content: CHECK_GRAVEYARD_JS },
         // .claude/
         { path: '.claude/CLAUDE.md', content: CLAUDE_MD },
         { path: '.claude/settings.local.json', content: SETTINGS_LOCAL_JSON },
-        { path: '.claude/hooks/pre-tool-use.sh', content: PRE_TOOL_USE_SH, executable: true },
-        { path: '.claude/hooks/post-tool-use.sh', content: POST_TOOL_USE_SH, executable: true },
+        { path: '.claude/hooks/dm-pre-tool-use.js', content: PRE_TOOL_USE_JS },
+        { path: '.claude/hooks/dm-post-tool-use.js', content: POST_TOOL_USE_JS },
         // commands
         { path: '.claude/commands/dm/explore.md', content: CMD_EXPLORE },
         { path: '.claude/commands/dm/edit.md', content: CMD_EDIT },

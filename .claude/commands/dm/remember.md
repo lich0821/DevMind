@@ -28,7 +28,7 @@ description: 将本次会话中出现的决策和经验规律沉淀为记忆文�
 
 执行：
 ```sh
-.devmind/scripts/rebuild-index.sh
+node .devmind/scripts/rebuild-index.js
 ```
 
 ### 步骤4：告知开发者
@@ -37,7 +37,7 @@ description: 将本次会话中出现的决策和经验规律沉淀为记忆文�
 已写入 N 条记忆：
 - [类型] [文件名]：[摘要]
 
-索引已更新。如需撤销，删除对应文件后重新运行 rebuild-index.sh。
+索引已更新。如需撤销，删除对应文件后重新运行 rebuild-index.js。
 ```
 
 ## 注意

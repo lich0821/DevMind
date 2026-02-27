@@ -36,9 +36,9 @@
 
 ## 模式约束说明（Hook 强制执行）
 
-- Explore / Plan 模式下，Write / Edit / NotebookEdit 工具调用会被 `pre-tool-use.sh` 拦截
+- Explore / Plan 模式下，Write / Edit / NotebookEdit 工具调用会被 `pre-tool-use.js` 拦截
 - Build 模式下，修改"明确排除"列表中的文件会触发暂停
-- 所有写操作都由 `post-tool-use.sh` 自动记录到 `audit.log`
+- 所有写操作都由 `post-tool-use.js` 自动记录到 `audit.log`
 
 ## 可用命令速览
 

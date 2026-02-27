@@ -130,13 +130,18 @@ After `devmind init`, the `.devmind/` directory looks like:
 │   └── index.md            Lightweight index (auto-generated)
 ├── modes/                  Mode documentation
 └── scripts/
-    ├── rebuild-index.sh    Rebuild memory index
-    └── check-graveyard.py  Detect duplicate/rejected approaches
+    ├── rebuild-index.js    Rebuild memory index
+    └── check-graveyard.js  Detect duplicate/rejected approaches
 ```
 
 ## Releases
 
-**v0.3.1** (current)
+**v0.4.0** (current)
+- feat: migrate all scripts from Shell/Python to Node.js for Windows compatibility
+- feat: rename hook files with `dm-` prefix to avoid naming conflicts
+- refactor: simplify hook injection logic in `devmind init`
+
+**v0.3.1**
 - fix: clear `current-plan.md` and `session.yaml` after build completes to avoid stale state
 
 **v0.3.0**
