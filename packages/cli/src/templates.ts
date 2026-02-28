@@ -4,15 +4,17 @@
 // ─── Hooks (Node.js for cross-platform compatibility) ─────────────────────────
 
 export const PRE_TOOL_USE_JS = `#!/usr/bin/env node
-// .claude/hooks/dm-pre-tool-use.js
+// ~/.devmind/hooks/dm-pre-tool-use.js
 // PreToolUse Hook: Mode enforcement for DevMind
 // Blocks write operations in Explore/Plan modes
 // Claude  Code passes JSON via stdin: {"tool_name":"...","tool_input":{...}}
+// This is a GLOBAL hook - uses process.cwd() to find project's .devmind/
 
 const fs = require('fs');
 const path = require('path');
 
-const DEVMIND_DIR = path.join(__dirname, '..', '..', '.devmind');
+// Find .devmind/ from current working directory (where Claude  Code is running)
+const DEVMIND_DIR = path.join(process.cwd(), '.devmind');
 
 // Read all stdin
 let input = '';
@@ -28,6 +30,11 @@ process.stdin.on('end', () => {
 });
 
 function main(hookInput) {
+    // Skip if not a DevMind project (no .devmind/ directory)
+    if (!fs.existsSync(DEVMIND_DIR)) {
+        process.exit(0);
+    }
+
     let data;
     try {
         data = JSON.parse(hookInput);
@@ -79,7 +86,9 @@ function main(hookInput) {
 
         if (currentMode === 'plan') {
             // Plan mode allows writing to .devmind/ internal files
-            if (filePath.includes('.devmind/') || filePath.includes('.devmind\\\\')) {
+            // Use path.sep for cross-platform compatibility
+            const devmindInPath = filePath.includes('.devmind' + path.sep) || filePath.includes('.devmind/');
+            if (devmindInPath) {
                 process.exit(0);
             }
             console.error('BLOCKED: Plan mode only outputs plans, no business code modifications');
@@ -134,15 +143,17 @@ function extractExcludedPatterns(planContent) {
 `;
 
 export const POST_TOOL_USE_JS = `#!/usr/bin/env node
-// .claude/hooks/dm-post-tool-use.js
+// ~/.devmind/hooks/dm-post-tool-use.js
 // PostToolUse Hook: Audit logging for DevMind
 // Records all write operations to audit.log
 // Claude  Code passes JSON via stdin: {"tool_name":"...","tool_input":{...},"tool_response":{...}}
+// This is a GLOBAL hook - uses process.cwd() to find project's .devmind/
 
 const fs = require('fs');
 const path = require('path');
 
-const DEVMIND_DIR = path.join(__dirname, '..', '..', '.devmind');
+// Find .devmind/ from current working directory (where Claude  Code is running)
+const DEVMIND_DIR = path.join(process.cwd(), '.devmind');
 
 // Read all stdin
 let input = '';
@@ -158,6 +169,11 @@ process.stdin.on('end', () => {
 });
 
 function main(hookInput) {
+    // Skip if not a DevMind project (no .devmind/ directory)
+    if (!fs.existsSync(DEVMIND_DIR)) {
+        process.exit(0);
+    }
+
     let data;
     try {
         data = JSON.parse(hookInput);

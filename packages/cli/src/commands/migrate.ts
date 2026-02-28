@@ -1,8 +1,8 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 import chalk from 'chalk';
-import { runInit, injectUserHooks } from './init.js';
+import { runInit } from './init.js';
 
 // ─── Project detection ─────────────────────────────────────────────────────────
 
@@ -196,13 +196,6 @@ export function runMigrate(targetDir: string): void {
         console.log('');
     } else {
         console.log(chalk.green('✓') + ' DevMind already initialized');
-        // Still ensure hooks are registered in user-level settings
-        const hookResult = injectUserHooks(targetDir);
-        if (hookResult.status === 'injected') {
-            console.log(chalk.green('✓') + ' Hooks registered in ' + chalk.cyan('~/.claude/settings.json'));
-        } else if (hookResult.status === 'error') {
-            console.log(chalk.red('✗') + ' Hook injection failed: ' + hookResult.message);
-        }
     }
 
     // Step 2: gather project info

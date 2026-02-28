@@ -1,9 +1,8 @@
-import { existsSync, mkdirSync, writeFileSync, readFileSync, chmodSync } from 'node:fs';
-import { join, resolve, dirname } from 'node:path';
-import { homedir } from 'node:os';
+import { existsSync, mkdirSync, writeFileSync, chmodSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 import chalk from 'chalk';
 
-import { PRE_TOOL_USE_JS, POST_TOOL_USE_JS, CLAUDE_MD, SETTINGS_LOCAL_JSON } from '../templates.js';
+import { CLAUDE_MD, SETTINGS_LOCAL_JSON } from '../templates.js';
 import { CMD_EXPLORE, CMD_EDIT, CMD_PLAN, CMD_BUILD } from '../templates-commands.js';
 import { CMD_REMEMBER, CMD_RECALL, CMD_BURY, CMD_AUDIT, CMD_SYNC_MEMORY, CMD_PUBLISH, CMD_RELEASE, CMD_MIGRATE, CMD_AUTO } from '../templates-commands2.js';
 import {
@@ -12,6 +11,7 @@ import {
     MODE_EXPLORE_MD, MODE_EDIT_MD, MODE_PLAN_MD, MODE_BUILD_MD,
     TMPL_DECISION, TMPL_PATTERN, TMPL_GRAVEYARD,
 } from '../templates-devmind.js';
+
 
 // ─── Scripts (Node.js for cross-platform compatibility) ──────────────────────
 
@@ -313,80 +313,6 @@ const INDEX_MD = `<!-- 此文件由 .devmind/scripts/rebuild-index.js 自动生�
 使用提示：需要详细内容时，使用 \`/recall <关键词>\` 检索
 `;
 
-// ─── User-level settings.json hook injection ──────────────────────────────────
-
-type HookEntry = { type: string; command: string; timeout?: number };
-type HookMatcher = { matcher: string; hooks: HookEntry[] };
-type HooksMap = Record<string, HookMatcher[]>;
-type UserSettings = { hooks?: HooksMap; [key: string]: unknown };
-
-/**
- * Inject DevMind hooks into ~/.claude/settings.json (user-level).
- * Claude  Code reads hooks ONLY from user-level settings, not project-level.
- * Preserves all existing content; only adds hooks if not already registered.
- * Hook commands use "node <absolute-path>" for cross-platform compatibility.
- *
- * IMPORTANT: Each project gets its own hook entry with a matcher that limits
- * the hook to only run when working in that project's directory.
- */
-export function injectUserHooks(projectDir: string): { status: 'injected' | 'already' | 'error'; message: string } {
-    const userSettingsPath = resolve(homedir(), '.claude', 'settings.json');
-    const absProjectDir = resolve(projectDir);
-
-    // Use "node <path>" for cross-platform execution (dm- prefix to avoid conflicts)
-    const preHookCommand = `node "${absProjectDir}/.claude/hooks/dm-pre-tool-use.js"`;
-    const postHookCommand = `node "${absProjectDir}/.claude/hooks/dm-post-tool-use.js"`;
-
-    // Read or initialize user settings
-    let settings: UserSettings = {};
-    if (existsSync(userSettingsPath)) {
-        try {
-            settings = JSON.parse(readFileSync(userSettingsPath, 'utf-8')) as UserSettings;
-        } catch {
-            return { status: 'error', message: '~/.claude/settings.json is malformed JSON' };
-        }
-    }
-
-    const hooks: HooksMap = settings.hooks ? { ...settings.hooks } : {};
-
-    // Check if already registered (by looking for this project's dm- prefixed hooks)
-    const preAlready = (hooks['PreToolUse'] ?? []).some(m =>
-        m.hooks?.some(h => h.command.includes(absProjectDir) && h.command.includes('dm-pre-tool-use.js')),
-    );
-    const postAlready = (hooks['PostToolUse'] ?? []).some(m =>
-        m.hooks?.some(h => h.command.includes(absProjectDir) && h.command.includes('dm-post-tool-use.js')),
-    );
-
-    if (preAlready && postAlready) {
-        return { status: 'already', message: 'hooks already registered' };
-    }
-
-    if (!preAlready) {
-        hooks['PreToolUse'] = [
-            ...(hooks['PreToolUse'] ?? []),
-            { matcher: '', hooks: [{ type: 'command', command: preHookCommand }] },
-        ];
-    }
-    if (!postAlready) {
-        hooks['PostToolUse'] = [
-            ...(hooks['PostToolUse'] ?? []),
-            { matcher: '', hooks: [{ type: 'command', command: postHookCommand }] },
-        ];
-    }
-
-    settings.hooks = hooks;
-
-    // Ensure ~/.claude/ dir exists
-    const claudeDir = resolve(homedir(), '.claude');
-    if (!existsSync(claudeDir)) {
-        mkdirSync(claudeDir, { recursive: true });
-    }
-
-    writeFileSync(userSettingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
-
-    return { status: 'injected', message: userSettingsPath };
-}
-
 // ─── File map ─────────────────────────────────────────────────────────────────
 
 interface FileEntry {
@@ -422,11 +348,9 @@ function buildFileMap(): FileEntry[] {
         // scripts (Node.js for cross-platform)
         { path: '.devmind/scripts/rebuild-index.js', content: REBUILD_INDEX_JS },
         { path: '.devmind/scripts/check-graveyard.js', content: CHECK_GRAVEYARD_JS },
-        // .claude/
+        // .claude/ (commands and settings only, hooks are global)
         { path: '.claude/CLAUDE.md', content: CLAUDE_MD },
         { path: '.claude/settings.local.json', content: SETTINGS_LOCAL_JSON },
-        { path: '.claude/hooks/dm-pre-tool-use.js', content: PRE_TOOL_USE_JS },
-        { path: '.claude/hooks/dm-post-tool-use.js', content: POST_TOOL_USE_JS },
         // commands
         { path: '.claude/commands/dm/explore.md', content: CMD_EXPLORE },
         { path: '.claude/commands/dm/edit.md', content: CMD_EDIT },
@@ -475,9 +399,6 @@ export function runInit(targetDir: string): void {
         created.push(file.path);
     }
 
-    // Inject hooks into user-level ~/.claude/settings.json
-    const hookResult = injectUserHooks(targetDir);
-
     // Output summary
     console.log('');
     console.log(chalk.green('✓') + ' DevMind initialized successfully!\n');
@@ -494,17 +415,6 @@ export function runInit(targetDir: string): void {
     if (skipped.length > 0) {
         console.log('');
         console.log(chalk.yellow(`Skipped ${skipped.length} existing files.`));
-    }
-
-    // Report hook injection status
-    console.log('');
-    if (hookResult.status === 'injected') {
-        console.log(chalk.green('✓') + ' Hooks registered in ' + chalk.cyan('~/.claude/settings.json'));
-    } else if (hookResult.status === 'already') {
-        console.log(chalk.yellow('~') + ' Hooks already registered in ~/.claude/settings.json');
-    } else {
-        console.log(chalk.red('✗') + ' Hook injection failed: ' + hookResult.message);
-        console.log('  Please manually add hooks to ~/.claude/settings.json');
     }
 
     console.log('');
