@@ -6,6 +6,8 @@ import { runStatus } from './commands/status.js';
 import { runRecall } from './commands/recall.js';
 import { runAudit } from './commands/audit.js';
 import { runMigrate } from './commands/migrate.js';
+import { runRebuildIndex } from './commands/rebuild-index.js';
+import { runCheckGraveyard } from './commands/check-graveyard.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json') as { version: string; description: string };
@@ -60,6 +62,22 @@ program
             plan: opts.plan,
             mode: opts.mode,
         });
+    });
+
+program
+    .command('rebuild-index [path]')
+    .description('Rebuild memory index (decisions, patterns, graveyard)')
+    .action((path?: string) => {
+        const targetDir = path ? resolve(path) : undefined;
+        runRebuildIndex(targetDir);
+    });
+
+program
+    .command('check-graveyard <proposal> [path]')
+    .description('Check if proposal matches rejected solutions in graveyard')
+    .action((proposal: string, path?: string) => {
+        const targetDir = path ? resolve(path) : undefined;
+        runCheckGraveyard(proposal, targetDir);
     });
 
 program.parse();

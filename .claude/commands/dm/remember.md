@@ -28,7 +28,7 @@ description: 将本次会话中出现的决策和经验规律沉淀为记忆文�
 
 执行：
 ```sh
-node .devmind/scripts/rebuild-index.js
+devmind rebuild-index
 ```
 
 ### 步骤4：告知开发者

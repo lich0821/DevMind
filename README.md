@@ -136,7 +136,14 @@ After `devmind init`, the `.devmind/` directory looks like:
 
 ## Releases
 
-**v0.5.0** (current)
+**v0.6.0** (current)
+- feat: add `devmind rebuild-index` CLI command to replace project-level scripts
+- feat: add `devmind check-graveyard <proposal>` CLI command for graveyard detection
+- refactor: migrate rebuild-index.js and check-graveyard.js from project scripts to CLI commands
+- refactor: update all Slash command templates to use new CLI commands
+- improvement: eliminate script duplication across projects, centralize maintenance
+
+**v0.5.0**
 - feat: add `devmind init --upgrade` command for upgrading existing projects
 - feat: add version management system with `devmind_version` in config.yaml
 - feat: auto-detect version mismatch and prompt upgrade at session start

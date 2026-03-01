@@ -136,7 +136,14 @@ devmind audit --plan "v0.1"  # 按计划名过滤审计日志
 
 ## 版本说明
 
-**v0.5.0**（当前）
+**v0.6.0**（当前）
+- 新增：`devmind rebuild-index` CLI 命令，替代项目级脚本
+- 新增：`devmind check-graveyard <提议>` CLI 命令，用于 Graveyard 检测
+- 重构：将 rebuild-index.js 和 check-graveyard.js 从项目脚本迁移到 CLI 命令
+- 重构：更新所有 Slash 命令模板使用新的 CLI 命令
+- 改进：消除项目间脚本重复，集中维护
+
+**v0.5.0**
 - 新增：`devmind init --upgrade` 命令，用于升级现有项目
 - 新增：版本管理系统，在 config.yaml 中添加 `devmind_version` 字段
 - 新增：会话启动时自动检测版本不匹配并提示升级

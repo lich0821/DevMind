@@ -150,7 +150,7 @@ description: 将本次会话中出现的决策和经验规律沉淀为记忆文�
 
 执行：
 \`\`\`sh
-node .devmind/scripts/rebuild-index.js
+devmind rebuild-index
 \`\`\`
 
 ### 步骤4：告知开发者
@@ -331,7 +331,7 @@ git status | grep "memory/"
 ### 步骤3：重建索引
 
 \`\`\`sh
-node .devmind/scripts/rebuild-index.js
+devmind rebuild-index
 \`\`\`
 
 ### 步骤4：输出同步摘要
@@ -345,7 +345,7 @@ node .devmind/scripts/rebuild-index.js
 
 ## 注意
 
-个人使用时，直接运行 \`node .devmind/scripts/rebuild-index.js\` 即可，无需 git pull。
+个人使用时，直接运行 \`devmind rebuild-index\` 即可，无需 git pull。
 `;
 
 export const CMD_PUBLISH = `---
@@ -628,7 +628,7 @@ echo "edit" > .devmind/current-mode.txt
 ### 步骤5：重建索引
 
 \`\`\`sh
-node .devmind/scripts/rebuild-index.js
+devmind rebuild-index
 \`\`\`
 
 ### 步骤6：输出迁移摘要

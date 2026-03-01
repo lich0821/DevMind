@@ -18,6 +18,8 @@ echo "plan" > .devmind/current-mode.txt
 
 检查当前提议是否与已否决方案相似（关键词重叠）。
 
+可选：使用 `devmind check-graveyard "<提议描述>"` 快速检测。
+
 如发现匹配，**必须**先输出警告：
 
 ```
