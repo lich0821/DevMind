@@ -137,8 +137,11 @@ After `devmind init`, the `.devmind/` directory looks like:
 ## Releases
 
 **v0.5.0** (current)
+- feat: add `devmind init --upgrade` command for upgrading existing projects
+- feat: add version management system with `devmind_version` in config.yaml
+- feat: auto-detect version mismatch and prompt upgrade at session start
 - feat: display current DevMind mode at end of each response for better visibility
-- feat: add Stop hook for session-end mode display
+- feat: add Stop hook for chat-end mode display
 - fix: use exit code 2 (instead of 1) for hook blocking to comply with Claude  Code convention
 
 **v0.4.0**

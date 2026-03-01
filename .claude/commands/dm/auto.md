@@ -1,3 +1,7 @@
+---
+description: 输入一句话需求，自动完成 explore→plan→build 全流程
+---
+
 进入 **AUTO 模式**（全自动流水线）。
 
 ## 前置操作

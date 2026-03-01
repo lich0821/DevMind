@@ -20,9 +20,10 @@ program
 program
     .command('init [path]')
     .description('Initialize DevMind in a project directory')
-    .action((path?: string) => {
+    .option('--upgrade', 'Upgrade existing DevMind project to latest version')
+    .action((path?: string, opts?: { upgrade?: boolean }) => {
         const targetDir = resolve(path ?? '.');
-        runInit(targetDir);
+        runInit(targetDir, opts?.upgrade ?? false);
     });
 
 program

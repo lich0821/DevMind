@@ -40,47 +40,8 @@ echo "build" > .devmind/current-mode.txt
 
 1. **严格按照执行步骤推进**，不跳步
 2. 每完成一个步骤，向 `session.yaml` 追加检查点
-3. 遇到以下情况**立即暂停**，提供结构化选项：
-   - 需要修改"明确排除"列表中的文件
-   - 需要修改不在"允许修改的文件范围"内的文件
-   - 发现与 Spec 约束冲突
-   - 需要新增未预期的依赖
-
-## 检查点写入格式（session.yaml）
-
-完成时：
-```yaml
-- id: cp-[N]
-  timestamp: "YYYY-MM-DDTHH:MM:SS"
-  description: "[操作描述]"
-  files_modified: [文件路径]
-  status: done
-```
-
-暂停时：
-```yaml
-- id: cp-[N]
-  description: "[待执行操作]"
-  status: paused
-  pause_reason: "[原因]"
-  resume_options:
-    - "[选项1]"
-    - "[选项2]"
-```
-
-## 暂停输出格式
-
-```
-⏸ PAUSED：[原因]
-
-请选择：
-(1) [选项1]
-(2) [选项2]
-(3) 暂停，切换到 /dm:plan 重新规划
-```
+3. 遇到计划外文件、依赖或约束冲突时**立即暂停**
 
 ## 完成后
 
-1. 清空 `current-plan.md`（写入空文件）
-2. 清空 `session.yaml`（写入空文件）
-3. 输出执行摘要，建议使用 `/dm:remember` 沉淀决策。
+输出执行摘要，建议使用 `/dm:remember` 沉淀决策。

@@ -13,7 +13,10 @@ last_active: ~
 checkpoints: []
 `;
 
-export const CONFIG_YAML = `project: MyProject
+export const CONFIG_YAML = `# DevMind 项目配置
+devmind_version: "0.5.0"
+
+project: MyProject
 default_mode: explore
 enforcement_level: hook
 

@@ -1,3 +1,7 @@
+---
+description: 汇总 docs/designs/draft/ 生成版本文档，归档功能文档
+---
+
 进入 **RELEASE 模式**（生成版本文档）。
 
 ## 执行步骤

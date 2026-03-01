@@ -46,19 +46,10 @@ echo "plan" > .devmind/current-mode.txt
 ### 不确定的部分
 - ⚠️ [不确定点]：[说明]
 
-### 需要验证的假设
-1. 假设：[假设内容]
-   验证方式：[如何验证]
-
 ### 风险评估
-- 技术风险：低/中/高（[说明]）
+- 技术风险：低/中/高
 - 回滚成本：低/中/高
-- 学习曲线：低/中/高
 ```
-
-多方案时，附上维度评分矩阵（★ 数量表示优劣，不使用百分比）。
-
-**不使用伪精确数字**（如"置信度 85%"）。
 
 ### 步骤3：等待开发者选择
 
@@ -66,7 +57,7 @@ echo "plan" > .devmind/current-mode.txt
 
 ### 步骤4：生成 Spec 化 current-plan.md
 
-开发者选定方案后，写入 `.devmind/current-plan.md`，**必须包含** Spec 区块：
+开发者选定方案后，写入 `.devmind/current-plan.md`：
 
 ```markdown
 # 计划：[任务名称]
@@ -91,10 +82,6 @@ echo "plan" > .devmind/current-mode.txt
 
 1. [步骤]
 ```
-
-### 步骤5：生成 Decision 草稿（可选）
-
-如果本次规划包含重要决策，生成草稿写入 `.devmind/memory/drafts/YYYY-MM-DD_[slug].md`。
 
 ## 注意
 

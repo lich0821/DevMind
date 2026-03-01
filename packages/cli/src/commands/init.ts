@@ -11,6 +11,7 @@ import {
     MODE_EXPLORE_MD, MODE_EDIT_MD, MODE_PLAN_MD, MODE_BUILD_MD,
     TMPL_DECISION, TMPL_PATTERN, TMPL_GRAVEYARD,
 } from '../templates-devmind.js';
+import { runUpgrade } from './upgrade.js';
 
 
 // ─── Scripts (Node.js for cross-platform compatibility) ──────────────────────
@@ -372,7 +373,13 @@ function buildFileMap(): FileEntry[] {
 
 // ─── Init command ─────────────────────────────────────────────────────────────
 
-export function runInit(targetDir: string): void {
+export function runInit(targetDir: string, upgrade: boolean = false): void {
+    // If upgrade flag is set, run upgrade instead
+    if (upgrade) {
+        runUpgrade(targetDir);
+        return;
+    }
+
     const files = buildFileMap();
     const created: string[] = [];
     const skipped: string[] = [];

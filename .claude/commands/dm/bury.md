@@ -47,7 +47,6 @@ AI 使用提示：如果再提议类似方案，先读此文件。
 
 ```
 已写入 Graveyard：.devmind/memory/graveyard/[slug].md
-关键词：[关键词列表]
 
 运行以下命令更新索引：
   node .devmind/scripts/rebuild-index.js

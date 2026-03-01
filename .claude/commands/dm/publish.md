@@ -1,3 +1,7 @@
+---
+description: 将当前功能整理为文档写入 docs/designs/draft/
+---
+
 进入 **PUBLISH 模式**（生成功能文档）。
 
 ## 执行步骤

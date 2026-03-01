@@ -137,8 +137,11 @@ devmind audit --plan "v0.1"  # 按计划名过滤审计日志
 ## 版本说明
 
 **v0.5.0**（当前）
+- 新增：`devmind init --upgrade` 命令，用于升级现有项目
+- 新增：版本管理系统，在 config.yaml 中添加 `devmind_version` 字段
+- 新增：会话启动时自动检测版本不匹配并提示升级
 - 新增：每次回复末尾显示当前 DevMind 模式，提升可见性
-- 新增：Stop hook 用于会话结束时显示模式信息
+- 新增：Stop hook 用于对话结束时显示模式信息
 - 修复：Hook 阻断操作使用退出码 2（而非 1），符合 Claude  Code 规范
 
 **v0.4.0**

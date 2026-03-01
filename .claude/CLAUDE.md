@@ -20,6 +20,15 @@
 
 3. **加载记忆索引**：读取 `.devmind/memory/index.md`（轻量级，仅包含摘要和标签）
 
+4. **检查 DevMind 版本**：读取 `.devmind/config.yaml` 中的 `devmind_version` 字段
+   - 如果版本低于当前安装的 DevMind 版本，提示：
+     ```
+     ⚠️  检测到 DevMind 有新版本可用
+     当前项目：v{旧版本} | 已安装：v{新版本}
+     建议运行：devmind init --upgrade
+     ```
+   - 如果版本字段不存在，提示运行 `devmind init --upgrade` 以启用版本管理
+
 ## 模式切换提示
 
 当开发者输入的意图与当前模式不符时，主动提示可用的模式命令：
@@ -36,9 +45,9 @@
 
 ## 模式约束说明（Hook 强制执行）
 
-- Explore / Plan 模式下，Write / Edit / NotebookEdit 工具调用会被 `pre-tool-use.js` 拦截
+- Explore / Plan 模式下，Write / Edit / NotebookEdit 工具调用会被 `dm-pre-tool-use.js` 拦截
 - Build 模式下，修改"明确排除"列表中的文件会触发暂停
-- 所有写操作都由 `post-tool-use.js` 自动记录到 `audit.log`
+- 所有写操作都由 `dm-post-tool-use.js` 自动记录到 `audit.log`
 
 ## 可用命令速览
 
@@ -73,3 +82,6 @@
 ```
 
 此要求适用于所有回复，确保开发者随时了解当前工作模式。
+
+---
+<!-- 以下为用户自定义内容，DevMind 升级时不会被覆盖 -->
