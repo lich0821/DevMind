@@ -7,7 +7,7 @@ export const PRE_TOOL_USE_JS = `#!/usr/bin/env node
 // ~/.devmind/hooks/dm-pre-tool-use.js
 // PreToolUse Hook: Mode enforcement for DevMind
 // Blocks write operations in Explore/Plan modes
-// Claude  Code passes JSON via stdin: {"tool_name":"...","tool_input":{...}}
+// Claude Code passes JSON via stdin: {"tool_name":"...","tool_input":{...}}
 // This is a GLOBAL hook - uses process.cwd() to find project's .devmind/
 
 const fs = require('fs');
@@ -69,7 +69,7 @@ function main(hookInput) {
                 console.error(\`BLOCKED: Dangerous command detected: \${pattern}\`);
                 console.error(\`Command: \${command}\`);
                 console.error('Please run this command manually in terminal if you understand the consequences.');
-                process.exit(1);
+                process.exit(2);
             }
         }
     }
@@ -81,7 +81,7 @@ function main(hookInput) {
         if (currentMode === 'explore') {
             console.error('BLOCKED: Explore mode prohibits file modifications');
             console.error('Hint: Use /dm:edit or /dm:build to enter writable mode');
-            process.exit(1);
+            process.exit(2);
         }
 
         if (currentMode === 'plan') {
@@ -93,7 +93,7 @@ function main(hookInput) {
             }
             console.error('BLOCKED: Plan mode only outputs plans, no business code modifications');
             console.error('Hint: Use /dm:build to execute confirmed plans');
-            process.exit(1);
+            process.exit(2);
         }
 
         if (currentMode === 'build') {
@@ -107,7 +107,7 @@ function main(hookInput) {
                     if (filePath.includes(pattern)) {
                         console.error(\`PAUSED: File '\${filePath}' is in the exclusion list\`);
                         console.error('Options: (1) Allow and update plan scope  (2) Allow one-time exception  (3) Skip this modification  (4) Switch to Plan mode');
-                        process.exit(1);
+                        process.exit(2);
                     }
                 }
             }
@@ -228,6 +228,56 @@ function main(hookInput) {
 }
 `;
 
+export const STOP_JS = `#!/usr/bin/env node
+// ~/.devmind/hooks/dm-stop.js
+// Stop Hook: Display current mode when session ends
+// This is a GLOBAL hook - uses process.cwd() to find project's .devmind/
+
+const fs = require('fs');
+const path = require('path');
+
+// Find .devmind/ from current working directory (where Claude  Code is running)
+const DEVMIND_DIR = path.join(process.cwd(), '.devmind');
+
+function main() {
+    // Skip if not a DevMind project (no .devmind/ directory)
+    if (!fs.existsSync(DEVMIND_DIR)) {
+        process.exit(0);
+    }
+
+    // Read current mode
+    let currentMode = 'explore';
+    const modeFile = path.join(DEVMIND_DIR, 'current-mode.txt');
+    try {
+        currentMode = fs.readFileSync(modeFile, 'utf8').trim();
+    } catch {
+        // Use default
+    }
+
+    // Mode display config
+    const modeConfig = {
+        explore: { desc: 'read-only' },
+        edit:    { desc: 'small edits' },
+        plan:    { desc: 'planning only' },
+        build:   { desc: 'executing plan' },
+        auto:    { desc: 'auto pipeline' }
+    };
+
+    const config = modeConfig[currentMode] || { desc: currentMode };
+
+    // Output JSON with systemMessage only
+    const modeText = \`📍DevMind: \${currentMode} (\${config.desc})\`;
+    const output = {
+        systemMessage: modeText
+    };
+    console.log(JSON.stringify(output));
+
+    process.exit(0);
+}
+
+main();
+`;
+
 // ─── CLAUDE.md ────────────────────────────────────────────────────────────────
 
 export const CLAUDE_MD = `# DevMind 状态感知
@@ -288,6 +338,23 @@ export const CLAUDE_MD = `# DevMind 状态感知
 | \`/dm:sync-memory\` | 同步团队记忆（git pull + 重建索引） |
 | \`/dm:publish\` | 将当前功能整理为文档写入 \`docs/designs/draft/\` |
 | \`/dm:release\` | 汇总 draft/ 生成版本文档，归档功能文档 |
+
+## 回复格式要求
+
+**每次回复结束时**，读取 \`.devmind/current-mode.txt\` 并在末尾单独一行显示当前模式：
+
+\`\`\`
+📍DevMind: {模式}
+\`\`\`
+
+示例：
+\`\`\`
+📍DevMind: explore
+📍DevMind: edit
+📍DevMind: build
+\`\`\`
+
+此要求适用于所有回复，确保开发者随时了解当前工作模式。
 `;
 
 // ─── settings.local.json ──────────────────────────────────────────────────────

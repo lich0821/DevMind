@@ -136,7 +136,12 @@ After `devmind init`, the `.devmind/` directory looks like:
 
 ## Releases
 
-**v0.4.0** (current)
+**v0.5.0** (current)
+- feat: display current DevMind mode at end of each response for better visibility
+- feat: add Stop hook for session-end mode display
+- fix: use exit code 2 (instead of 1) for hook blocking to comply with Claude  Code convention
+
+**v0.4.0**
 - feat: migrate all scripts from Shell/Python to Node.js for Windows compatibility
 - feat: rename hook files with `dm-` prefix to avoid naming conflicts
 - refactor: simplify hook injection logic in `devmind init`

@@ -136,7 +136,12 @@ devmind audit --plan "v0.1"  # 按计划名过滤审计日志
 
 ## 版本说明
 
-**v0.4.0**（当前）
+**v0.5.0**（当前）
+- 新增：每次回复末尾显示当前 DevMind 模式，提升可见性
+- 新增：Stop hook 用于会话结束时显示模式信息
+- 修复：Hook 阻断操作使用退出码 2（而非 1），符合 Claude  Code 规范
+
+**v0.4.0**
 - 新增：所有脚本从 Shell/Python 迁移到 Node.js，支持 Windows
 - 新增：Hook 文件添加 `dm-` 前缀，避免命名冲突
 - 重构：简化 `devmind init` 中的 Hook 注入逻辑

@@ -5,7 +5,7 @@
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
-import { PRE_TOOL_USE_JS, POST_TOOL_USE_JS } from '../templates.js';
+import { PRE_TOOL_USE_JS, POST_TOOL_USE_JS, STOP_JS } from '../templates.js';
 
 type HookEntry = { type: string; command: string; timeout?: number };
 type HookMatcher = { matcher: string; hooks: HookEntry[] };
@@ -19,8 +19,10 @@ function installGlobalHooks(): void {
     // Global hook paths
     const preHookPath = join(globalHooksDir, 'dm-pre-tool-use.js');
     const postHookPath = join(globalHooksDir, 'dm-post-tool-use.js');
+    const stopHookPath = join(globalHooksDir, 'dm-stop.js');
     const preHookCommand = `node "${preHookPath}"`;
     const postHookCommand = `node "${postHookPath}"`;
+    const stopHookCommand = `node "${stopHookPath}"`;
 
     // Ensure ~/.devmind/hooks/ exists
     if (!existsSync(globalHooksDir)) {
@@ -30,6 +32,7 @@ function installGlobalHooks(): void {
     // Write/update hook scripts (always overwrite to ensure latest version)
     writeFileSync(preHookPath, PRE_TOOL_USE_JS, 'utf-8');
     writeFileSync(postHookPath, POST_TOOL_USE_JS, 'utf-8');
+    writeFileSync(stopHookPath, STOP_JS, 'utf-8');
 
     console.log('✓ Hook scripts installed to ~/.devmind/hooks/');
 
@@ -54,8 +57,11 @@ function installGlobalHooks(): void {
     const postAlready = (hooks['PostToolUse'] ?? []).some(m =>
         m.hooks?.some(h => h.command === postHookCommand),
     );
+    const stopAlready = (hooks['Stop'] ?? []).some(m =>
+        m.hooks?.some(h => h.command === stopHookCommand),
+    );
 
-    if (preAlready && postAlready) {
+    if (preAlready && postAlready && stopAlready) {
         console.log('~ Global hooks already registered in ~/.claude/settings.json');
         return;
     }
@@ -71,6 +77,12 @@ function installGlobalHooks(): void {
         hooks['PostToolUse'] = [
             ...(hooks['PostToolUse'] ?? []),
             { matcher: '', hooks: [{ type: 'command', command: postHookCommand }] },
+        ];
+    }
+    if (!stopAlready) {
+        hooks['Stop'] = [
+            ...(hooks['Stop'] ?? []),
+            { matcher: '', hooks: [{ type: 'command', command: stopHookCommand }] },
         ];
     }
 
