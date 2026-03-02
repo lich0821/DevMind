@@ -136,7 +136,11 @@ devmind audit --plan "v0.1"  # 按计划名过滤审计日志
 
 ## 版本说明
 
-**v0.6.0**（当前）
+**v0.6.1**（当前）
+- 改进：build 完成后自动执行 `/dm:remember`，防止决策遗漏
+- 改进：build 完成后自动切换回 explore 模式
+
+**v0.6.0**
 - 新增：`devmind rebuild-index` CLI 命令，替代项目级脚本
 - 新增：`devmind check-graveyard <提议>` CLI 命令，用于 Graveyard 检测
 - 重构：将 rebuild-index.js 和 check-graveyard.js 从项目脚本迁移到 CLI 命令

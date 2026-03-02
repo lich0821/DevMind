@@ -1,6 +1,6 @@
 {
     "name": "@lich0821/devmind",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "description": "DevMind — stateful AI collaboration framework for Claude  Code",
     "type": "module",
     "bin": {

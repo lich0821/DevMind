@@ -215,5 +215,17 @@ echo "build" > .devmind/current-mode.txt
 
 ## 完成后
 
-输出执行摘要，建议使用 \`/dm:remember\` 沉淀决策。
+所有步骤完成后，按顺序执行：
+
+1. 输出执行摘要
+2. **自动进入 \`/dm:remember\` 流程**——回顾本次 build 涉及的决策和规律，判断是否有值得沉淀的内容，有则写入，无则跳过
+3. 清理状态：
+\`\`\`sh
+echo "" > .devmind/current-plan.md
+echo "" > .devmind/session.yaml
+\`\`\`
+4. 切换回 explore 模式：
+\`\`\`sh
+echo "explore" > .devmind/current-mode.txt
+\`\`\`
 `;

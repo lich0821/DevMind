@@ -136,7 +136,11 @@ After `devmind init`, the `.devmind/` directory looks like:
 
 ## Releases
 
-**v0.6.0** (current)
+**v0.6.1** (current)
+- improvement: auto-execute `/dm:remember` after build completion to prevent decision loss
+- improvement: auto-switch back to explore mode after build completes
+
+**v0.6.0**
 - feat: add `devmind rebuild-index` CLI command to replace project-level scripts
 - feat: add `devmind check-graveyard <proposal>` CLI command for graveyard detection
 - refactor: migrate rebuild-index.js and check-graveyard.js from project scripts to CLI commands
