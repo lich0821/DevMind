@@ -2,7 +2,13 @@ import { existsSync, mkdirSync, writeFileSync, chmodSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import chalk from 'chalk';
 
-import { CLAUDE_MD, SETTINGS_LOCAL_JSON } from '../templates.js';
+import {
+    AGENTS_MD,
+    CLAUDE_MD,
+    SETTINGS_LOCAL_JSON,
+    SKILL_DEVMIND_MODE_MD,
+    SKILL_DEVMIND_MODE_OPENAI_YAML,
+} from '../templates.js';
 import { CMD_EXPLORE, CMD_EDIT, CMD_PLAN, CMD_BUILD } from '../templates-commands.js';
 import { CMD_REMEMBER, CMD_RECALL, CMD_BURY, CMD_AUDIT, CMD_SYNC_MEMORY, CMD_PUBLISH, CMD_RELEASE, CMD_MIGRATE, CMD_AUTO } from '../templates-commands2.js';
 import {
@@ -352,6 +358,10 @@ function buildFileMap(): FileEntry[] {
         // .claude/ (commands and settings only, hooks are global)
         { path: '.claude/CLAUDE.md', content: CLAUDE_MD },
         { path: '.claude/settings.local.json', content: SETTINGS_LOCAL_JSON },
+        // Codex CLI
+        { path: 'AGENTS.md', content: AGENTS_MD },
+        { path: '.agents/skills/devmind-mode/SKILL.md', content: SKILL_DEVMIND_MODE_MD },
+        { path: '.agents/skills/devmind-mode/agents/openai.yaml', content: SKILL_DEVMIND_MODE_OPENAI_YAML },
         // commands
         { path: '.claude/commands/dm/explore.md', content: CMD_EXPLORE },
         { path: '.claude/commands/dm/edit.md', content: CMD_EDIT },
@@ -427,7 +437,8 @@ export function runInit(targetDir: string, upgrade: boolean = false): void {
     console.log('');
     console.log(chalk.bold('Next steps:'));
     console.log('  1. Edit ' + chalk.cyan('.devmind/config.yaml') + ' — set your project name');
-    console.log('  2. Open Claude  Code in this directory');
-    console.log('  3. Type ' + chalk.cyan('/dm:explore') + ' to start');
+    console.log('  2. Choose your assistant:');
+    console.log('     - Claude  Code: use ' + chalk.cyan('/dm:explore'));
+    console.log('     - Codex CLI: type ' + chalk.cyan('dm:explore') + ' in chat');
     console.log('');
 }

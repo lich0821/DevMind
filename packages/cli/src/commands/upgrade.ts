@@ -2,7 +2,12 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from
 import { join, dirname } from 'node:path';
 import { createRequire } from 'node:module';
 import chalk from 'chalk';
-import { CLAUDE_MD, SETTINGS_LOCAL_JSON } from '../templates.js';
+import {
+    AGENTS_MD,
+    CLAUDE_MD,
+    SKILL_DEVMIND_MODE_MD,
+    SKILL_DEVMIND_MODE_OPENAI_YAML,
+} from '../templates.js';
 import { CMD_EXPLORE, CMD_EDIT, CMD_PLAN, CMD_BUILD } from '../templates-commands.js';
 import { CMD_REMEMBER, CMD_RECALL, CMD_BURY, CMD_AUDIT, CMD_SYNC_MEMORY, CMD_PUBLISH, CMD_RELEASE, CMD_MIGRATE, CMD_AUTO } from '../templates-commands2.js';
 import { CONFIG_YAML, FLOW_YAML, MODE_EXPLORE_MD, MODE_EDIT_MD, MODE_PLAN_MD, MODE_BUILD_MD } from '../templates-devmind.js';
@@ -11,11 +16,13 @@ const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string };
 
 const CURRENT_VERSION = pkg.version;
-const USER_CUSTOM_SEPARATOR = '\n---\n<!-- 以下为用户自定义内容，DevMind 升级时不会被覆盖 -->\n';
+const USER_CUSTOM_MARKER = '---\n<!-- 以下为用户自定义内容';
 
 export function runUpgrade(targetDir: string): void {
     const devmindDir = join(targetDir, '.devmind');
     const configPath = join(devmindDir, 'config.yaml');
+    const agentsPath = join(targetDir, 'AGENTS.md');
+    const codexSkillPath = join(targetDir, '.agents', 'skills', 'devmind-mode', 'SKILL.md');
 
     // 1. Check if .devmind/ exists
     if (!existsSync(devmindDir)) {
@@ -35,7 +42,8 @@ export function runUpgrade(targetDir: string): void {
     }
 
     // 3. Compare versions
-    if (projectVersion === CURRENT_VERSION) {
+    const needsCodexScaffold = !existsSync(agentsPath) || !existsSync(codexSkillPath);
+    if (projectVersion === CURRENT_VERSION && !needsCodexScaffold) {
         console.log(chalk.green('✓') + ` Already at latest version ${CURRENT_VERSION}`);
         console.log('  No upgrade needed');
         return;
@@ -45,37 +53,50 @@ export function runUpgrade(targetDir: string): void {
     console.log(chalk.bold('DevMind Upgrade'));
     console.log(`  Current project: ${chalk.yellow(projectVersion)}`);
     console.log(`  Installed version: ${chalk.green(CURRENT_VERSION)}`);
+    if (projectVersion === CURRENT_VERSION && needsCodexScaffold) {
+        console.log(`  ${chalk.yellow('Compatibility patch')}: add missing Codex files`);
+    }
     console.log('');
 
     // 4. Upgrade CLAUDE.md (backup + smart merge)
-    upgradeCLAUDEMD(targetDir);
+    const claudeBackupCreated = upgradeCLAUDEMD(targetDir);
 
-    // 5. Upgrade slash commands (overwrite)
+    // 5. Upgrade AGENTS.md (backup + smart merge)
+    const agentsBackupCreated = upgradeAGENTSMD(targetDir);
+
+    // 6. Ensure Codex skill scaffold exists
+    const codexSkillCreated = ensureCodexSkill(targetDir);
+
+    // 7. Upgrade slash commands (overwrite)
     upgradeCommands(targetDir);
 
-    // 6. Upgrade mode docs (overwrite)
+    // 8. Upgrade mode docs (overwrite)
     upgradeModes(targetDir);
 
-    // 7. Merge config.yaml and flow.yaml
+    // 9. Merge config.yaml and flow.yaml
     upgradeConfig(targetDir);
 
-    // 8. Update version in config.yaml
+    // 10. Update version in config.yaml
     updateVersion(configPath);
 
     console.log('');
     console.log(chalk.green('✓') + ' Upgrade completed successfully!\n');
     console.log(chalk.bold('Changes:'));
-    console.log('  • CLAUDE.md updated (backup: .claude/CLAUDE.md.backup)');
+    console.log(`  • CLAUDE.md refreshed${claudeBackupCreated ? ' (backup: .claude/CLAUDE.md.backup)' : ''}`);
+    console.log(`  • AGENTS.md refreshed${agentsBackupCreated ? ' (backup: AGENTS.md.backup)' : ''}`);
+    console.log(`  • Codex skill scaffold ${codexSkillCreated > 0 ? 'added/refreshed' : 'already up to date'}`);
     console.log('  • Slash commands updated');
     console.log('  • Mode documentation updated');
     console.log('  • Config files merged');
     console.log(`  • Version updated to ${CURRENT_VERSION}`);
     console.log('');
-    console.log(chalk.yellow('⚠️  Please review .claude/CLAUDE.md.backup and delete it after confirming'));
+    if (claudeBackupCreated || agentsBackupCreated) {
+        console.log(chalk.yellow('⚠️  Please review backup files and delete them after confirming'));
+    }
     console.log('');
 }
 
-function upgradeCLAUDEMD(targetDir: string): void {
+function upgradeCLAUDEMD(targetDir: string): boolean {
     const claudeMdPath = join(targetDir, '.claude', 'CLAUDE.md');
     const backupPath = join(targetDir, '.claude', 'CLAUDE.md.backup');
 
@@ -86,7 +107,7 @@ function upgradeCLAUDEMD(targetDir: string): void {
             mkdirSync(dir, { recursive: true });
         }
         writeFileSync(claudeMdPath, CLAUDE_MD, 'utf-8');
-        return;
+        return false;
     }
 
     // Backup existing file
@@ -95,23 +116,69 @@ function upgradeCLAUDEMD(targetDir: string): void {
     // Read existing content
     const existingContent = readFileSync(claudeMdPath, 'utf-8');
 
-    // Extract user custom content (after separator)
-    let userCustomContent = '';
-    const separatorIndex = existingContent.indexOf('---\n<!-- 以下为用户自定义内容');
-    if (separatorIndex !== -1) {
-        const afterSeparator = existingContent.substring(separatorIndex);
-        const lines = afterSeparator.split('\n');
-        // Skip separator line and comment line
-        userCustomContent = lines.slice(2).join('\n').trim();
-    }
-
-    // Write new framework content + separator + user custom content
-    let newContent = CLAUDE_MD;
-    if (userCustomContent) {
-        newContent += '\n' + userCustomContent;
-    }
-
+    // Write new framework content + preserved custom content
+    const newContent = mergeManagedContent(CLAUDE_MD, existingContent);
     writeFileSync(claudeMdPath, newContent, 'utf-8');
+    return true;
+}
+
+function upgradeAGENTSMD(targetDir: string): boolean {
+    const agentsPath = join(targetDir, 'AGENTS.md');
+    const backupPath = join(targetDir, 'AGENTS.md.backup');
+
+    if (!existsSync(agentsPath)) {
+        writeFileSync(agentsPath, AGENTS_MD, 'utf-8');
+        return false;
+    }
+
+    copyFileSync(agentsPath, backupPath);
+    const existingContent = readFileSync(agentsPath, 'utf-8');
+    const newContent = mergeManagedContent(AGENTS_MD, existingContent);
+    writeFileSync(agentsPath, newContent, 'utf-8');
+    return true;
+}
+
+function ensureCodexSkill(targetDir: string): number {
+    const files = [
+        {
+            path: join(targetDir, '.agents', 'skills', 'devmind-mode', 'SKILL.md'),
+            content: SKILL_DEVMIND_MODE_MD,
+        },
+        {
+            path: join(targetDir, '.agents', 'skills', 'devmind-mode', 'agents', 'openai.yaml'),
+            content: SKILL_DEVMIND_MODE_OPENAI_YAML,
+        },
+    ];
+
+    let created = 0;
+    for (const file of files) {
+        if (existsSync(file.path)) {
+            continue;
+        }
+        const dir = dirname(file.path);
+        if (!existsSync(dir)) {
+            mkdirSync(dir, { recursive: true });
+        }
+        writeFileSync(file.path, file.content, 'utf-8');
+        created += 1;
+    }
+    return created;
+}
+
+function extractUserCustomContent(existingContent: string): string {
+    const separatorIndex = existingContent.indexOf(USER_CUSTOM_MARKER);
+    if (separatorIndex === -1) {
+        return '';
+    }
+
+    const afterSeparator = existingContent.substring(separatorIndex);
+    const lines = afterSeparator.split('\n');
+    return lines.slice(2).join('\n').trim();
+}
+
+function mergeManagedContent(template: string, existingContent: string): string {
+    const userCustomContent = extractUserCustomContent(existingContent);
+    return userCustomContent ? `${template}\n${userCustomContent}` : template;
 }
 
 function upgradeCommands(targetDir: string): void {
@@ -194,4 +261,3 @@ function updateVersion(configPath: string): void {
 
     writeFileSync(configPath, content, 'utf-8');
 }
-

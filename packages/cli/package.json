@@ -1,7 +1,7 @@
 {
     "name": "@lich0821/devmind",
     "version": "0.6.1",
-    "description": "DevMind — stateful AI collaboration framework for Claude  Code",
+    "description": "DevMind — stateful AI collaboration framework for Claude  Code and Codex CLI",
     "type": "module",
     "bin": {
         "devmind": "./bin/devmind.js"
@@ -29,6 +29,7 @@
     },
     "keywords": [
         "claude-code",
+        "codex-cli",
         "ai",
         "devmind",
         "workflow",

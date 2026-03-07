@@ -104,7 +104,9 @@ function buildChecklist(info: ProjectInfo): string {
     lines.push(`# DevMind 迁移清单`);
     lines.push(``);
     lines.push(`> 生成日期：${today}`);
-    lines.push(`> 使用方法：在 Claude  Code 中输入 \`/dm:migrate\` 开始迁移`);
+    lines.push(`> 使用方法：`);
+    lines.push(`> - Claude  Code：输入 \`/dm:migrate\``);
+    lines.push(`> - Codex CLI：让助手按本清单逐项执行迁移`);
     lines.push(``);
     lines.push(`## 项目基本信息`);
     lines.push(``);
@@ -167,16 +169,13 @@ function buildChecklist(info: ProjectInfo): string {
         lines.push(`- [ ] 检查历史中是否有被否决的技术方案，写入 \`memory/graveyard/\``);
     }
 
-    lines.push(`- [ ] 运行 \`node .devmind/scripts/rebuild-index.js\` 重建索引`);
+    lines.push(`- [ ] 运行 \`devmind rebuild-index\` 重建索引`);
     lines.push(`- [ ] 输出迁移摘要`);
     lines.push(``);
     lines.push(`## 下一步`);
     lines.push(``);
-    lines.push(`打开 Claude  Code，在对话框中输入：`);
-    lines.push(``);
-    lines.push(`\`\`\``);
-    lines.push(`/dm:migrate`);
-    lines.push(`\`\`\``);
+    lines.push(`- Claude  Code：在对话框中输入 \`/dm:migrate\``);
+    lines.push(`- Codex CLI：让助手按本清单逐项执行`);
 
     return lines.join('\n');
 }
@@ -189,6 +188,8 @@ export function runMigrate(targetDir: string): void {
 
     // Step 1: ensure devmind is initialized
     const devmindDir = join(targetDir, '.devmind');
+    const agentsPath = join(targetDir, 'AGENTS.md');
+    const codexSkillPath = join(targetDir, '.agents', 'skills', 'devmind-mode', 'SKILL.md');
     if (!existsSync(devmindDir)) {
         console.log(chalk.yellow('DevMind not initialized. Running init first...'));
         console.log('');
@@ -196,6 +197,11 @@ export function runMigrate(targetDir: string): void {
         console.log('');
     } else {
         console.log(chalk.green('✓') + ' DevMind already initialized');
+        if (!existsSync(agentsPath) || !existsSync(codexSkillPath)) {
+            console.log(chalk.yellow('Missing Codex project scaffold. Running upgrade compatibility patch...'));
+            runInit(targetDir, true);
+            console.log('');
+        }
     }
 
     // Step 2: gather project info
@@ -239,7 +245,8 @@ export function runMigrate(targetDir: string): void {
     // Step 5: instructions
     console.log('');
     console.log(chalk.bold('Next steps:'));
-    console.log('  1. Open Claude  Code in this directory');
-    console.log('  2. Type ' + chalk.cyan('/dm:migrate') + ' to start the migration');
+    console.log('  1. Choose your assistant in this directory:');
+    console.log('     - Claude  Code: type ' + chalk.cyan('/dm:migrate'));
+    console.log('     - Codex CLI: ask it to execute ' + chalk.cyan('.devmind/migrate-checklist.md') + ' step by step');
     console.log('');
 }

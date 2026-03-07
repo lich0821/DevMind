@@ -8,6 +8,7 @@ import { runAudit } from './commands/audit.js';
 import { runMigrate } from './commands/migrate.js';
 import { runRebuildIndex } from './commands/rebuild-index.js';
 import { runCheckGraveyard } from './commands/check-graveyard.js';
+import { runMode } from './commands/mode.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json') as { version: string; description: string };
@@ -41,6 +42,13 @@ program
     .description('Show current mode, active plan, and session checkpoints')
     .action(() => {
         runStatus();
+    });
+
+program
+    .command('mode [mode]')
+    .description('Get or switch current mode (explore/edit/plan/build)')
+    .action((mode?: string) => {
+        runMode(mode);
     });
 
 program

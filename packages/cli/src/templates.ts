@@ -369,6 +369,146 @@ export const CLAUDE_MD = `# DevMind 状态感知
 <!-- 以下为用户自定义内容，DevMind 升级时不会被覆盖 -->
 `;
 
+// ─── AGENTS.md (Codex CLI) ───────────────────────────────────────────────────
+
+export const AGENTS_MD = `# DevMind 状态感知（Codex CLI）
+
+> 本段由 DevMind 框架注入，适用于本项目所有 Codex CLI 会话。
+> DevMind 仅维护**项目级** \`AGENTS.md\`，不依赖用户级文件。
+
+## 会话启动检查
+
+每次会话开始时，执行以下操作：
+
+1. **读取当前模式**：\`cat .devmind/current-mode.txt\`
+   - \`explore\`：只读，禁止修改任何文件
+   - \`edit\`：可小范围修改，跨文件改动（超过2个文件）需确认
+   - \`plan\`：仅输出方案，不修改业务代码
+   - \`build\`：按 \`current-plan.md\` 中的 Spec 执行
+   - 文件不存在时，默认进入 \`explore\` 模式
+
+2. **检查会话状态**：如果 \`.devmind/session.yaml\` 存在，读取并告知开发者上次任务状态，包括：
+   - 上次执行的计划
+   - 已完成和待续的检查点
+   - 是否有未解决的暂停原因
+
+3. **加载记忆索引**：读取 \`.devmind/memory/index.md\`（轻量级，仅包含摘要和标签）
+
+4. **检查 DevMind 版本**：读取 \`.devmind/config.yaml\` 中的 \`devmind_version\` 字段
+   - 如果版本低于当前安装的 DevMind 版本，提示：
+     \`\`\`
+     ⚠️  检测到 DevMind 有新版本可用
+     当前项目：v{旧版本} | 已安装：v{新版本}
+     建议运行：devmind init --upgrade
+     \`\`\`
+   - 如果版本字段不存在，提示运行 \`devmind init --upgrade\` 以启用版本管理
+
+## 对话内快捷指令（不切终端）
+
+当用户在对话里输入以下指令时，视为模式切换请求，直接执行，不要要求用户手动去终端：
+
+- \`dm:explore\` → 执行 \`devmind mode explore\`
+- \`dm:edit\` → 执行 \`devmind mode edit\`
+- \`dm:plan\` → 执行 \`devmind mode plan\`
+- \`dm:build\` → 执行 \`devmind mode build\`
+- \`dm:status\` → 执行 \`devmind status\`
+
+执行后，用简短确认回复当前模式/状态，再继续后续任务。
+
+## Codex Skill
+
+项目提供本地 Skill：\`$devmind-mode\`（位于 \`.agents/skills/devmind-mode/\`）。
+
+可用方式：
+- 直接输入：\`$devmind-mode explore\`
+- 或使用上面的 \`dm:*\` 快捷指令（优先推荐）
+
+## 模式约束说明（Codex 软约束）
+
+Codex CLI 没有 Claude Hook 的强拦截机制，因此必须在会话中严格遵守以下规则：
+
+- Explore 模式：禁止任何文件写入
+- Plan 模式：只允许写 \`.devmind/\` 目录内的计划/会话文件，不允许改业务代码
+- Build 模式：严格按 \`current-plan.md\` 执行，修改计划外文件前必须先确认
+- Edit 模式：小范围改动；超过 2 个文件前必须先列清单并确认
+
+当用户意图与当前模式冲突时，先提醒并建议切换模式，不要直接越权执行。
+
+## Codex 常用命令
+
+| 命令 | 用途 |
+|------|------|
+| \`devmind mode\` | 查看当前模式 |
+| \`devmind mode explore\` | 进入只读分析模式 |
+| \`devmind mode edit\` | 进入小范围编辑模式 |
+| \`devmind mode plan\` | 进入方案规划模式 |
+| \`devmind mode build\` | 进入执行模式 |
+| \`devmind status\` | 查看模式、计划、检查点 |
+| \`devmind recall <关键词>\` | 检索历史记忆 |
+| \`devmind audit --last 20\` | 查看最近审计记录 |
+| \`devmind rebuild-index\` | 重建记忆索引 |
+
+## 回复格式要求
+
+**每次回复结束时**，读取 \`.devmind/current-mode.txt\` 并在末尾单独一行显示当前模式：
+
+\`\`\`
+📍DevMind: {模式}
+\`\`\`
+
+示例：
+\`\`\`
+📍DevMind: explore
+📍DevMind: edit
+📍DevMind: build
+\`\`\`
+
+---
+<!-- 以下为用户自定义内容，DevMind 升级时不会被覆盖 -->
+`;
+
+// ─── Codex Skill: devmind-mode ───────────────────────────────────────────────
+
+export const SKILL_DEVMIND_MODE_MD = `---
+name: devmind-mode
+description: Switch or inspect DevMind mode in Codex conversations. Use when user enters dm:explore/dm:edit/dm:plan/dm:build/dm:status, asks to switch mode, or asks current mode.
+---
+
+# DevMind Mode
+
+## Overview
+
+在 Codex 对话中切换/查看 DevMind 模式，不要求用户手动切到终端执行命令。
+
+## Triggers
+
+- 用户输入：\`dm:explore\`、\`dm:edit\`、\`dm:plan\`、\`dm:build\`、\`dm:status\`
+- 用户表达：切换到某个 DevMind 模式、查看当前模式
+- 显式调用：\`$devmind-mode <mode>\`
+
+## Execution
+
+1. 解析目标模式：
+   - \`explore\` / \`edit\` / \`plan\` / \`build\`
+   - 若是 \`status\`，执行 \`devmind status\`
+   - 若未给模式，执行 \`devmind mode\` 输出当前模式
+2. 模式切换时执行：\`devmind mode <mode>\`
+3. 切换成功后，补充执行：\`devmind status\`
+4. 用简短文本回复结果，并附上当前模式行：
+   - \`📍DevMind: <mode>\`
+
+## Notes
+
+- 若当前目录不是 DevMind 项目，提示先运行 \`devmind init\`
+- 不要让用户重复手动输入终端命令，除非命令执行失败
+`;
+
+export const SKILL_DEVMIND_MODE_OPENAI_YAML = `interface:
+  display_name: "DevMind Mode"
+  short_description: "Switch or check DevMind work mode"
+  default_prompt: "Use $devmind-mode to switch to plan mode and confirm status."
+`;
+
 // ─── settings.local.json ──────────────────────────────────────────────────────
 
 export const SETTINGS_LOCAL_JSON = `{

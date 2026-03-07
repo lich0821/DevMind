@@ -18,7 +18,7 @@ devmind_version: "0.6.1"
 
 project: MyProject
 default_mode: explore
-enforcement_level: hook
+enforcement_level: mixed   # mixed = Claude hooks + Codex prompt constraints
 
 memory:
   load_on_session_start:
