@@ -4,7 +4,7 @@
 
 > 让 AI 编程协作真正"记得住、分得清、停得下"
 
-**DevMind** 是一个与 [Claude Code](https://claude.ai/code) 深度整合的开发者工作流框架。它通过文件 + Hook + Slash 命令，给 AI 补上"工作记忆"——让 AI 助手从"聪明的一次性工具"变成"有记忆的长期搭档"。
+**DevMind** 是一个适配 [Claude Code](https://claude.ai/code) 与 Codex CLI 的开发者工作流框架。它通过本地文件 + 提示词 + CLI 命令，给 AI 补上"工作记忆"——让 AI 助手从"聪明的一次性工具"变成"有记忆的长期搭档"。
 
 ## 为什么需要 DevMind？
 
@@ -32,7 +32,7 @@ DevMind 针对这些问题，在本地维护一套"项目状态文件"，让 AI 
 
 ### 5 层状态管理
 
-- **Mode**：当前工作模式，Hook 强制执行权限约束
+- **Mode**：当前工作模式（Claude 用 Hook 强约束，Codex 用提示词约束）
 - **Memory**：跨会话记忆，分为 decisions（决策）/ patterns（规律）/ graveyard（已否决方案）
 - **Flow**：自动检查点，检测越界 / 不确定 / 危险操作时暂停
 - **Session**：任务检查点链，支持中断后断点续传
@@ -56,14 +56,18 @@ devmind init
 
 会自动生成：
 - `.devmind/`：状态管理目录（模式、记忆、会话、配置）
-- `.claude/hooks/`：PreToolUse / PostToolUse 钩子
 - `.claude/commands/dm/`：11 个 Slash 命令
 - `.claude/CLAUDE.md`：会话启动时自动注入的状态感知提示
+- `AGENTS.md`：Codex CLI 会话自动加载的状态感知提示
+- `.agents/skills/devmind-mode/`：Codex 项目级技能（模式切换）
+
+> Claude hooks 会在安装时自动写入 `~/.devmind/hooks/`，并注册到 `~/.claude/settings.json`。
 
 ### 开始工作
 
-打开 Claude Code，开始一个新会话，它会自动读取当前模式和记忆索引。
+选择你正在使用的助手：
 
+在 Claude Code 中：
 ```
 /dm:auto      # 一句话需求 → 自动 explore + plan + build
 /dm:explore    # 进入只读分析模式
@@ -76,11 +80,28 @@ devmind init
 /dm:status     # 查看当前状态（也可用 devmind status）
 ```
 
+在 Codex CLI 中：
+```text
+dm:explore    # 对话内切到 explore
+dm:plan       # 对话内切到 plan
+dm:build      # 对话内切到 build
+dm:edit       # 对话内切到 edit
+dm:status     # 对话内查看 DevMind 状态
+```
+
+也可显式调用项目技能：
+
+```text
+$devmind-mode explore
+```
+
 ### CLI 命令
 
 除 Slash 命令外，也可直接在终端使用：
 
 ```bash
+devmind mode                 # 查看当前模式
+devmind mode explore         # 切换模式
 devmind status               # 查看当前模式、计划、检查点
 devmind recall hook          # 搜索记忆中关于 hook 的内容
 devmind audit --last 10      # 查看最近 10 条文件修改记录
@@ -91,7 +112,7 @@ devmind audit --plan "v0.1"  # 按计划名过滤审计日志
 
 ```
 会话开始
-  └─ Claude 自动加载模式 + 记忆索引
+  └─ Claude/Codex 通过 CLAUDE.md 或 AGENTS.md 自动加载模式 + 记忆索引
 
 探索阶段（explore）
   └─ 只读分析，AI 无法误改文件
@@ -114,9 +135,15 @@ devmind audit --plan "v0.1"  # 按计划名过滤审计日志
 
 ## 目录结构
 
-初始化后的 `.devmind/` 目录：
+`devmind init` 后的关键文件与目录：
 
 ```
+AGENTS.md
+.agents/
+└── skills/
+    └── devmind-mode/
+        ├── SKILL.md
+        └── agents/openai.yaml
 .devmind/
 ├── current-mode.txt        当前模式（explore/plan/build/edit）
 ├── current-plan.md         当前执行计划（含 Spec 约束）
@@ -136,7 +163,13 @@ devmind audit --plan "v0.1"  # 按计划名过滤审计日志
 
 ## 版本说明
 
-**v0.6.1**（当前）
+**v0.6.2**（当前）
+- 新增：生成 `AGENTS.md`，适配 Codex CLI 会话
+- 新增：`devmind mode [mode]` 命令，支持无 Slash 的模式切换
+- 新增：生成项目级 Codex 技能 `.agents/skills/devmind-mode/`
+- 新增：支持对话内 `dm:*` 快捷指令（无需切终端）
+
+**v0.6.1**
 - 改进：build 完成后自动执行 `/dm:remember`，防止决策遗漏
 - 改进：build 完成后自动切换回 explore 模式
 

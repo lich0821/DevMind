@@ -14,7 +14,7 @@ checkpoints: []
 `;
 
 export const CONFIG_YAML = `# DevMind 项目配置
-devmind_version: "0.6.1"
+devmind_version: "0.6.2"
 
 project: MyProject
 default_mode: explore

@@ -4,7 +4,7 @@
 
 > Give your AI coding assistant a working memory — so it remembers decisions, respects boundaries, and knows when to stop.
 
-**DevMind** is a developer workflow framework that deeply integrates with [Claude  Code](https://claude.ai/code). Using local files + Hooks + Slash commands, it transforms your AI assistant from a "smart one-shot tool" into a "long-term collaborator with memory."
+**DevMind** is a developer workflow framework for [Claude  Code](https://claude.ai/code) and Codex CLI. Using local files + prompts + CLI commands, it transforms your AI assistant from a "smart one-shot tool" into a "long-term collaborator with memory."
 
 ## Why DevMind?
 
@@ -32,7 +32,7 @@ DevMind addresses these issues by maintaining a set of local "project state file
 
 ### 5-Layer State Management
 
-- **Mode**: Current work mode, enforced by Hooks
+- **Mode**: Current work mode, enforced by Hooks (Claude) or prompts (Codex)
 - **Memory**: Cross-session memory — decisions / patterns / graveyard (rejected approaches)
 - **Flow**: Auto-checkpoints — pauses on scope violations, uncertainty, or dangerous operations
 - **Session**: Checkpoint chain for tasks, supports resume after interruption
@@ -56,14 +56,18 @@ devmind init
 
 This generates:
 - `.devmind/`: State management directory (mode, memory, session, config)
-- `.claude/hooks/`: PreToolUse / PostToolUse hooks
 - `.claude/commands/dm/`: 11 slash commands
 - `.claude/CLAUDE.md`: State-awareness prompt auto-injected at session start
+- `AGENTS.md`: State-awareness prompt auto-injected for Codex CLI
+- `.agents/skills/devmind-mode/`: project-level Codex skill for mode switching
+
+> Claude hooks are installed globally into `~/.devmind/hooks/` and registered in `~/.claude/settings.json` during package install.
 
 ### Start Working
 
-Open Claude  Code and start a new session — it will automatically load the current mode and memory index.
+Pick your assistant:
 
+For Claude  Code:
 ```
 /dm:auto      # One-liner input → auto explore + plan + build
 /dm:explore    # Enter read-only analysis mode
@@ -76,11 +80,28 @@ Open Claude  Code and start a new session — it will automatically load the cur
 /dm:status     # Show current status (also: devmind status)
 ```
 
+For Codex CLI:
+```text
+dm:explore    # Switch to explore in chat
+dm:plan       # Switch to plan in chat
+dm:build      # Switch to build in chat
+dm:edit       # Switch to edit in chat
+dm:status     # Show DevMind status in chat
+```
+
+You can also invoke the project skill explicitly:
+
+```text
+$devmind-mode explore
+```
+
 ### CLI Commands
 
 You can also use the CLI directly in your terminal:
 
 ```bash
+devmind mode                 # Print current mode
+devmind mode explore         # Switch mode
 devmind status               # Show current mode, active plan, checkpoints
 devmind recall hook          # Search memory for anything related to "hook"
 devmind audit --last 10      # View the last 10 file modification entries
@@ -91,7 +112,7 @@ devmind audit --plan "v0.1"  # Filter audit log by plan name
 
 ```
 Session start
-  └─ Claude auto-loads mode + memory index
+  └─ Claude/Codex auto-loads mode + memory index via CLAUDE.md or AGENTS.md
 
 Explore phase
   └─ Read-only analysis — AI cannot accidentally modify files
@@ -114,9 +135,15 @@ Consolidation phase
 
 ## Directory Structure
 
-After `devmind init`, the `.devmind/` directory looks like:
+After `devmind init`, key generated files/directories are:
 
 ```
+AGENTS.md
+.agents/
+└── skills/
+    └── devmind-mode/
+        ├── SKILL.md
+        └── agents/openai.yaml
 .devmind/
 ├── current-mode.txt        Current mode (explore/plan/build/edit)
 ├── current-plan.md         Active execution plan (with Spec constraints)
@@ -136,7 +163,13 @@ After `devmind init`, the `.devmind/` directory looks like:
 
 ## Releases
 
-**v0.6.1** (current)
+**v0.6.2** (current)
+- feat: add Codex CLI adaptation via generated `AGENTS.md`
+- feat: add `devmind mode [mode]` command for mode switching without slash commands
+- feat: add project-level Codex skill scaffold `.agents/skills/devmind-mode/`
+- feat: support in-chat `dm:*` shortcuts without terminal switching
+
+**v0.6.1**
 - improvement: auto-execute `/dm:remember` after build completion to prevent decision loss
 - improvement: auto-switch back to explore mode after build completes
 
